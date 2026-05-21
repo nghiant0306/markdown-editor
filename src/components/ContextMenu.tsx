@@ -38,7 +38,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         document.removeEventListener('contextmenu', onClose);
       };
     }
-  }, [visible, onClose]);
+  }, [visible, onClose, x, y]);
 
   if (!visible) {
     console.log('ContextMenu not visible, returning null');
