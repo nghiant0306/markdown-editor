@@ -8,7 +8,6 @@ import StatusBar from './components/StatusBar';
 import ContextMenu from './components/ContextMenu';
 import FileExplorer from './components/FileExplorer';
 import HelpPanel from './components/HelpPanel';
-import ChatPanel from './components/ChatPanel';
 import { FindReplacePanel } from './components/FindReplacePanel';
 import { GoToLinePanel } from './components/GoToLinePanel';
 
@@ -68,9 +67,7 @@ This is a test image. Try right-clicking on it!
   const [splitPosition, setSplitPosition] = useState(50); // percentage
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
   const [imageZoom, setImageZoom] = useState(100); // image zoom level
-  const [showFileExplorer, setShowFileExplorer] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
-  const [showChat, setShowChat] = useState(false);
   const [openFiles, setOpenFiles] = useState<OpenFile[]>([]);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [explorerWidth, setExplorerWidth] = useState(280);
@@ -238,36 +235,9 @@ ${htmlContent}
     URL.revokeObjectURL(url);
   }, [editorState.filename]);
 
-  const handleToggleFileExplorer = useCallback(() => {
-    setShowFileExplorer(prev => !prev);
-  }, []);
-
   const handleToggleHelp = useCallback(() => {
     setShowHelp(prev => !prev);
   }, []);
-
-  const handleToggleChat = useCallback(() => {
-    setShowChat(prev => !prev);
-  }, []);
-
-  const handleApplyChatSuggestion = useCallback((suggestion: string) => {
-    setEditorState(prev => ({
-      ...prev,
-      content: suggestion,
-      isDirty: true,
-    }));
-    
-    // Update the corresponding file in openFiles
-    if (currentFileId) {
-      setOpenFiles(prev => 
-        prev.map(f => 
-          f.id === currentFileId 
-            ? { ...f, content: suggestion, isDirty: true }
-            : f
-        )
-      );
-    }
-  }, [currentFileId]);
 
   const handleFileExplorerNew = useCallback(() => {
     const newFileId = Date.now().toString();
@@ -716,18 +686,12 @@ ${htmlContent}
     <div className="app">
       <MenuBar />
       <Toolbar
-        showFileExplorer={showFileExplorer}
-        onToggleFileExplorer={handleToggleFileExplorer}
         showHelp={showHelp}
         onToggleHelp={handleToggleHelp}
-        showChat={showChat}
-        onToggleChat={handleToggleChat}
       />
       <div className="editor-container" ref={containerRef}>
-        {showFileExplorer && (
-          <>
-          <div className="file-explorer-panel" style={{ width: explorerWidth }}>
-            <FileExplorer
+        <div className="file-explorer-panel" style={{ width: explorerWidth }}>
+          <FileExplorer
               openFiles={openFiles}
               currentFileId={currentFileId}
               onSelectFile={handleSelectFile}
@@ -737,18 +701,16 @@ ${htmlContent}
               onOpenFileWithContent={handleOpenFileWithContent}
               encoding={encoding}
               onEncodingChange={setEncoding}
-            />
-          </div>
-          <div
-            className="resize-divider"
-            onMouseDown={(e) => {
-              isResizingExplorer.current = true;
-              explorerStartX.current = e.clientX;
-              explorerStartWidth.current = explorerWidth;
-            }}
           />
-          </>
-        )}
+        </div>
+        <div
+          className="resize-divider"
+          onMouseDown={(e) => {
+            isResizingExplorer.current = true;
+            explorerStartX.current = e.clientX;
+            explorerStartWidth.current = explorerWidth;
+          }}
+        />
         <div className="editor-workspace" style={{ flex: 1, display: 'flex' }}>
           <EditorPanel
             content={editorState.content}
@@ -803,15 +765,6 @@ ${htmlContent}
                 totalLines={editorState.content.split('\n').length}
               />
             )}
-          </div>
-        )}
-        {showChat && (
-          <div className="chat-panel-container">
-            <ChatPanel
-              editorContent={editorState.content}
-              filename={editorState.filename}
-              onApplySuggestion={handleApplyChatSuggestion}
-            />
           </div>
         )}
       </div>

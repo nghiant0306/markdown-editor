@@ -28,6 +28,10 @@
   background-color: #d0d0d0;
 }
 
+.toolbar-spacer {
+  flex: 1;
+}
+
 .toolbar-btn {
   display: flex;
   align-items: center;
