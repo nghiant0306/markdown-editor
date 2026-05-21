@@ -19,7 +19,7 @@
 
 .editor-code-wrap {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   background-color: #f4f4f4;
   display: flex;
   flex-direction: row;
@@ -50,8 +50,7 @@
 
 .editor-code-container {
   flex: 1;
-  overflow: hidden;
-  min-height: 100%;
+  overflow: auto;
 }
 
 /* react-simple-code-editor container */
@@ -72,7 +71,7 @@
   margin: 0 !important;
 }
 
-.editor-code-wrap::-webkit-scrollbar { width: 10px; }
-.editor-code-wrap::-webkit-scrollbar-track { background: #eee; }
-.editor-code-wrap::-webkit-scrollbar-thumb { background: #bbb; border-radius: 5px; }
-.editor-code-wrap::-webkit-scrollbar-thumb:hover { background: #999; }
+.editor-code-container::-webkit-scrollbar { width: 10px; }
+.editor-code-container::-webkit-scrollbar-track { background: #eee; }
+.editor-code-container::-webkit-scrollbar-thumb { background: #bbb; border-radius: 5px; }
+.editor-code-container::-webkit-scrollbar-thumb:hover { background: #999; }

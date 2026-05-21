@@ -186,6 +186,8 @@ interface PreviewPanelProps {
   onImageContextMenu?: (e: React.MouseEvent) => void;
   onImageZoomChange?: (direction: 'in' | 'out' | 'reset') => void;
   previewMode?: 'markdown' | 'html' | 'json' | 'xml';
+  onScroll?: (ratio: number) => void;
+  syncScrollRatio?: number;
 }
 
 let mermaidInitialized = false;
@@ -366,7 +368,7 @@ const ImageWithZoom = ({ src, alt, onContextMenu, imageZoom, onImageZoomChange }
   );
 };
 
-const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, zoom, style, imageZoom = 100, onImageContextMenu, onImageZoomChange, previewMode = 'markdown' }) => {
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, zoom, style, imageZoom = 100, onImageContextMenu, onImageZoomChange, previewMode = 'markdown', onScroll, syncScrollRatio = 0 }) => {
   const previewContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -414,6 +416,41 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, zoom, style, image
       };
     }
   }, [onImageContextMenu]);
+
+  const isSyncingRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+
+  // Handle scroll events and emit onScroll callback (throttled via RAF)
+  useEffect(() => {
+    const element = previewContentRef.current;
+    if (!element) return;
+    const handleScroll = () => {
+      if (!isSyncingRef.current && onScroll) {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        rafRef.current = requestAnimationFrame(() => {
+          const ratio = element.scrollHeight > element.clientHeight
+            ? element.scrollTop / (element.scrollHeight - element.clientHeight)
+            : 0;
+          onScroll(ratio);
+        });
+      }
+    };
+    element.addEventListener('scroll', handleScroll);
+    return () => {
+      element.removeEventListener('scroll', handleScroll);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [onScroll]);
+
+  // Apply scroll from parent sync
+  useEffect(() => {
+    const element = previewContentRef.current;
+    if (!element || syncScrollRatio === undefined || syncScrollRatio === null) return;
+    isSyncingRef.current = true;
+    const scrollTop = syncScrollRatio * (element.scrollHeight - element.clientHeight);
+    element.scrollTop = Math.max(0, scrollTop);
+    setTimeout(() => { isSyncingRef.current = false; }, 30);
+  }, [syncScrollRatio]);
 
   const remarkPlugins = useMemo(() => [remarkGfm, remarkMath] as any[], []);
   const rehypePlugins = useMemo(() => [

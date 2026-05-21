@@ -9,6 +9,8 @@ interface EditorPanelProps {
   zoom: number;
   filename?: string;
   style?: CSSProperties;
+  onScroll?: (ratio: number) => void;
+  syncScrollRatio?: number;
 }
 
 // Shared language map (extension → lowlight language name)
@@ -74,7 +76,7 @@ function hastToHtml(node: any): string {
   return '';
 }
 
-const EditorPanel: React.FC<EditorPanelProps> = ({ content, onChange, zoom, filename = '', style }) => {
+const EditorPanel: React.FC<EditorPanelProps> = ({ content, onChange, zoom, filename = '', style, onScroll, syncScrollRatio = 0 }) => {
   const language = useMemo(() => {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
     return EXT_TO_LANG[ext] || '';
@@ -95,34 +97,58 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ content, onChange, zoom, file
   const lineCount = content.split('\n').length;
   const lineNumberDigits = Math.ceil(Math.log10(lineCount || 1));
   const lineNumberWidth = `${Math.max(32, lineNumberDigits * 7 + 16)}px`;
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const isSyncingRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
 
-  // Sync scroll between line numbers and editor
+  // Sync scroll between line numbers and editor, emit onScroll (throttled via RAF)
   useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
+    const container = containerRef.current;
+    if (!container) return;
     const handleScroll = () => {
       if (lineNumbersRef.current) {
-        lineNumbersRef.current.scrollTop = wrapper.scrollTop;
+        lineNumbersRef.current.scrollTop = container.scrollTop;
+      }
+      if (!isSyncingRef.current && onScroll) {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        rafRef.current = requestAnimationFrame(() => {
+          const ratio = container.scrollHeight > container.clientHeight
+            ? container.scrollTop / (container.scrollHeight - container.clientHeight)
+            : 0;
+          onScroll(ratio);
+        });
       }
     };
-    wrapper.addEventListener('scroll', handleScroll);
-    return () => wrapper.removeEventListener('scroll', handleScroll);
-  }, []);
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [onScroll]);
+
+  // Apply scroll from parent sync
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || syncScrollRatio === undefined || syncScrollRatio === null) return;
+    isSyncingRef.current = true;
+    const scrollTop = syncScrollRatio * (container.scrollHeight - container.clientHeight);
+    container.scrollTop = Math.max(0, scrollTop);
+    setTimeout(() => { isSyncingRef.current = false; }, 30);
+  }, [syncScrollRatio]);
 
   return (
     <div className="editor-panel" style={style}>
       <div className="editor-header">
         <span>Editor</span>
       </div>
-      <div className="editor-code-wrap" ref={wrapperRef}>
+      <div className="editor-code-wrap">
         <div className="editor-line-numbers" ref={lineNumbersRef} style={{ fontSize, width: lineNumberWidth }}>
           {Array.from({ length: lineCount }, (_, i) => i + 1).map(lineNum => (
             <div key={lineNum} className="editor-line-number">{lineNum}</div>
           ))}
         </div>
-        <div className="editor-code-container">
+        <div className="editor-code-container" ref={containerRef}>
           <SimpleEditor
             value={content}
             onValueChange={onChange}

@@ -74,6 +74,8 @@ This is a test image. Try right-clicking on it!
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [explorerWidth, setExplorerWidth] = useState(280);
   const [encoding, setEncoding] = useState('UTF-8');
+  const [scrollSyncRatio, setScrollSyncRatio] = useState<number | null>(null);
+  const scrollSyncSourceRef = useRef<'editor' | 'preview' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isResizing = useRef(false);
   const isResizingExplorer = useRef(false);
@@ -500,6 +502,16 @@ ${htmlContent}
     });
   }, []);
 
+  const handleEditorScroll = useCallback((ratio: number) => {
+    scrollSyncSourceRef.current = 'editor';
+    setScrollSyncRatio(ratio);
+  }, []);
+
+  const handlePreviewScroll = useCallback((ratio: number) => {
+    scrollSyncSourceRef.current = 'preview';
+    setScrollSyncRatio(ratio);
+  }, []);
+
   useEffect(() => {
     // Global contextmenu handler for images and mermaid diagrams
     const handleGlobalContextMenu = (e: Event) => {
@@ -627,6 +639,8 @@ ${htmlContent}
             zoom={editorState.zoom}
             filename={editorState.filename}
             style={{ flex: `0 0 ${splitPosition}%` }}
+            onScroll={handleEditorScroll}
+            syncScrollRatio={scrollSyncSourceRef.current === 'preview' ? scrollSyncRatio : undefined}
           />
           {showPreview && (
             <>
@@ -642,6 +656,8 @@ ${htmlContent}
                 onImageContextMenu={handleImageContextMenu}
                 onImageZoomChange={handleImageZoom}
                 previewMode={previewMode}
+                onScroll={handlePreviewScroll}
+                syncScrollRatio={scrollSyncSourceRef.current === 'editor' ? scrollSyncRatio : undefined}
               />
             </>
           )}
