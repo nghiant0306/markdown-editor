@@ -65,7 +65,6 @@ This is a test image. Try right-clicking on it!
     zoom: 100,
   });
 
-  const [showPreview, setShowPreview] = useState(true);
   const [splitPosition, setSplitPosition] = useState(50); // percentage
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
   const [imageZoom, setImageZoom] = useState(100); // image zoom level
@@ -114,57 +113,53 @@ This is a test image. Try right-clicking on it!
     }
   }, [currentFileId]);
 
-  const handleZoom = useCallback((direction: 'in' | 'out' | 'reset') => {
-    setEditorState(prev => {
-      let newZoom = prev.zoom;
-      if (direction === 'in') {
-        newZoom = Math.min(prev.zoom + 10, 200);
-      } else if (direction === 'out') {
-        newZoom = Math.max(prev.zoom - 10, 50);
-      } else {
-        newZoom = 100;
-      }
-      return { ...prev, zoom: newZoom };
-    });
-  }, []);
-
-  const handleNew = useCallback(() => {
-    if (editorState.isDirty) {
-      const confirmed = window.confirm('Discard changes?');
-      if (!confirmed) return;
-    }
-    setEditorState({
-      content: '',
-      filename: 'Untitled.md',
-      isDirty: false,
-      zoom: 100,
-    });
-  }, [editorState.isDirty]);
-
-  const handleOpen = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.md,.markdown,.txt';
-    input.onchange = (e: any) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event: any) => {
-          const content = event.target.result;
-          setEditorState({
-            content,
-            filename: file.name,
-            isDirty: false,
-            zoom: 100,
-          });
-        };
-        reader.readAsText(file);
-      }
-    };
-    input.click();
-  }, []);
-
   const handleSave = useCallback(() => {
+    // If there's a currently open file from openFiles, save that one
+    if (currentFileId && openFilesRef.current.length > 0) {
+      const currentFile = openFilesRef.current.find(f => f.id === currentFileId);
+      if (currentFile) {
+        // Try to save directly to file if handle is available (File System Access API)
+        if (currentFile.handle) {
+          currentFile.handle.createWritable().then((writable: any) => {
+            writable.write(currentFile.content);
+            writable.close();
+            // Clear the isDirty flag for this file
+            setOpenFiles(prev => 
+              prev.map(f => 
+                f.id === currentFileId 
+                  ? { ...f, isDirty: false }
+                  : f
+              )
+            );
+          }).catch((err: any) => {
+            console.error('Error saving file:', err);
+            alert('Error saving file: ' + err?.message);
+          });
+          return;
+        }
+        
+        // Fallback: Download the file
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(currentFile.content));
+        element.setAttribute('download', currentFile.name);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+        
+        // Clear the isDirty flag for this file
+        setOpenFiles(prev => 
+          prev.map(f => 
+            f.id === currentFileId 
+              ? { ...f, isDirty: false }
+              : f
+          )
+        );
+        return;
+      }
+    }
+    
+    // Otherwise, save the main editor state (fallback for backward compatibility)
     const element = document.createElement('a');
     element.setAttribute('href', 'data:text/markdown;charset=utf-8,' + encodeURIComponent(editorState.content));
     element.setAttribute('download', editorState.filename);
@@ -173,7 +168,7 @@ This is a test image. Try right-clicking on it!
     element.click();
     document.body.removeChild(element);
     setEditorState(prev => ({ ...prev, isDirty: false }));
-  }, [editorState]);
+  }, [currentFileId, editorState]);
 
   const handleDownloadHtml = useCallback(() => {
     const previewEl = document.querySelector('.preview-content');
@@ -242,10 +237,6 @@ ${htmlContent}
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, [editorState.filename]);
-
-  const handleTogglePreview = useCallback(() => {
-    setShowPreview(prev => !prev);
-  }, []);
 
   const handleToggleFileExplorer = useCallback(() => {
     setShowFileExplorer(prev => !prev);
@@ -723,20 +714,8 @@ ${htmlContent}
 
   return (
     <div className="app">
-      <MenuBar 
-        onNew={handleNew}
-        onOpen={handleOpen}
-        onSave={handleSave}
-        onDownloadHtml={handleDownloadHtml}
-        isDirty={editorState.isDirty}
-      />
+      <MenuBar />
       <Toolbar
-        zoom={editorState.zoom}
-        onZoom={handleZoom}
-        imageZoom={imageZoom}
-        onImageZoom={handleImageZoom}
-        showPreview={showPreview}
-        onTogglePreview={handleTogglePreview}
         showFileExplorer={showFileExplorer}
         onToggleFileExplorer={handleToggleFileExplorer}
         showHelp={showHelp}
@@ -784,26 +763,22 @@ ${htmlContent}
             replacedMatches={replacedMatches}
             containerRef={editorContainerRef}
           />
-          {showPreview && (
-            <>
-              <div 
-                className="resize-divider"
-                onMouseDown={handleMouseDownDivider}
-              />
-              <PreviewPanel
-                content={previewContent}
-                filename={editorState.filename}
-                zoom={editorState.zoom}
-                style={{ flex: `0 0 ${100 - splitPosition}%` }}
-                imageZoom={imageZoom}
-                onImageContextMenu={handleImageContextMenu}
-                onImageZoomChange={handleImageZoom}
-                previewMode={previewMode}
-                onScroll={handlePreviewScroll}
-                syncScrollRatio={scrollSyncSourceRef.current === 'editor' ? scrollSyncRatio : undefined}
-              />
-            </>
-          )}
+          <div 
+            className="resize-divider"
+            onMouseDown={handleMouseDownDivider}
+          />
+          <PreviewPanel
+            content={previewContent}
+            filename={editorState.filename}
+            style={{ flex: `0 0 ${100 - splitPosition}%` }}
+            imageZoom={imageZoom}
+            onImageContextMenu={handleImageContextMenu}
+            onImageZoomChange={handleImageZoom}
+            previewMode={previewMode}
+            onScroll={handlePreviewScroll}
+            syncScrollRatio={scrollSyncSourceRef.current === 'editor' ? scrollSyncRatio : undefined}
+            onDownloadHtml={handleDownloadHtml}
+          />
         </div>
         {(findReplaceOpen || goToLineOpen) && (
           <div className="right-panel-container">

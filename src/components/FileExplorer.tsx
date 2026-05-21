@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { FileText, Folder, FolderOpen, X, Plus, ChevronRight, ChevronDown, FolderOpen as FolderPlus } from 'lucide-react';
+import { FileText, Folder, FolderOpen, ChevronRight, ChevronDown, FolderOpen as FolderPlus } from 'lucide-react';
 import './FileExplorer.css';
 
 interface OpenFile {
@@ -126,12 +126,13 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   encoding,
   onEncodingChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'open' | 'explorer'>('open');
   const [rootHandle, setRootHandle] = useState<any>(null);
   const [rootName, setRootName] = useState('');
   const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [loadingPaths, setLoadingPaths] = useState<Set<string>>(new Set());
+  const [isCreatingNewFile, setIsCreatingNewFile] = useState(false);
+  const [newFileName, setNewFileName] = useState('Untitled.md');
   const encodingRef = React.useRef(encoding);
   React.useEffect(() => { encodingRef.current = encoding; }, [encoding]);
 
@@ -160,11 +161,38 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       setRootName(handle.name);
       setTreeItems(children);
       setExpandedPaths(new Set());
-      setActiveTab('explorer');
     } catch (err: any) {
       if (err.name !== 'AbortError') console.error(err);
     }
   }, [loadDirectory]);
+
+  const handleCreateNewFile = useCallback(async () => {
+    if (!rootHandle || !newFileName.trim()) {
+      alert('Please enter a file name');
+      return;
+    }
+    try {
+      // Create the file in the root folder
+      const fileHandle = await rootHandle.getFileHandle(newFileName, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write('');
+      await writable.close();
+
+      const content = '';
+
+      // Add to opened files
+      onOpenFileWithContent?.(newFileName, content, fileHandle);
+
+      // Refresh the tree
+      const children = await loadDirectory(rootHandle, rootName);
+      setTreeItems(children);
+      setIsCreatingNewFile(false);
+      setNewFileName('Untitled.md');
+    } catch (err: any) {
+      alert(`Error creating file: ${err?.message || err}`);
+      setIsCreatingNewFile(false);
+    }
+  }, [rootHandle, newFileName, rootName, loadDirectory, onOpenFileWithContent]);
 
   const handleToggleFolder = useCallback(async (item: TreeItem, allItems: TreeItem[], setItems: React.Dispatch<React.SetStateAction<TreeItem[]>>) => {
     const path = item.path;
@@ -200,21 +228,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     } catch (err: any) {
       alert(`Error reading file: ${err?.message || err}`);
     }
-  }, [onOpenFileWithContent]);
-
-  const handleOpenFileDialog = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.multiple = true;
-    input.onchange = async (e: any) => {
-      const files: File[] = Array.from(e.target.files || []);
-      for (const file of files) {
-        const buffer = await file.arrayBuffer();
-        const content = new TextDecoder(encodingRef.current).decode(buffer);
-        onOpenFileWithContent?.(file.name, content, undefined, file);
-      }
-    };
-    input.click();
   }, [onOpenFileWithContent]);
 
   const renderTree = (items: TreeItem[], depth = 0): React.ReactNode =>
@@ -266,17 +279,24 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     <div className="file-explorer">
       <div className="file-explorer-header">
         <div className="fe-tabs">
-          <button className={`fe-tab${activeTab === 'open' ? ' active' : ''}`} onClick={() => setActiveTab('open')}>Open</button>
-          <button className={`fe-tab${activeTab === 'explorer' ? ' active' : ''}`} onClick={() => setActiveTab('explorer')}>Explorer</button>
+          <button className="fe-tab active">Explorer</button>
         </div>
         <div className="file-explorer-actions">
-          {activeTab === 'open' && <>
-            <button className="file-explorer-btn" title="New File" onClick={onNewFile}><Plus size={14} /></button>
-            <button className="file-explorer-btn" title="Open File" onClick={handleOpenFileDialog}><FileText size={14} /></button>
-          </>}
-          {activeTab === 'explorer' && (
-            <button className="file-explorer-btn" title="Open Folder" onClick={handleOpenFolder}><FolderPlus size={14} /></button>
-          )}
+          <button 
+            className="file-explorer-btn" 
+            title="New File" 
+            onClick={() => {
+              if (rootHandle) {
+                setIsCreatingNewFile(true);
+                setNewFileName('Untitled.md');
+              } else {
+                onNewFile();
+              }
+            }}
+          >
+            +
+          </button>
+          <button className="file-explorer-btn" title="Open Folder" onClick={handleOpenFolder}><FolderPlus size={14} /></button>
         </div>
       </div>
       <div className="fe-encoding-bar">
@@ -297,41 +317,59 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       </div>
 
       <div className="file-explorer-content">
-        {activeTab === 'open' && (
-          openFiles.length === 0
-            ? <div className="file-explorer-empty">
-                <p>No files open</p>
-                <p className="file-explorer-hint">Click + to create or 📄 to open a file</p>
-              </div>
-            : <div className="file-list">
-                {openFiles.map(file => (
-                  <div
-                    key={file.id}
-                    className={`file-item${currentFileId === file.id ? ' active' : ''}`}
-                    onClick={() => onSelectFile(file.id)}
-                  >
-                    <div className="file-item-content">
-                      <FileText size={13} style={{ color: getFileColor(file.name), flexShrink: 0 }} />
-                      <span className="file-name">
-                        {file.name}
-                        {file.isDirty && <span className="file-dirty">●</span>}
-                      </span>
-                    </div>
-                    <button className="file-close-btn" onClick={e => { e.stopPropagation(); onCloseFile(file.id); }} title="Close">
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-        )}
-
-        {activeTab === 'explorer' && (
+        {
           rootHandle
             ? <div className="tree-view">
                 <div className="tree-root-label">
                   <Folder size={13} className="folder-icon" />
                   <span>{rootName}</span>
                 </div>
+                {openFiles.length > 0 && (
+                  <div className="open-files-section">
+                    {openFiles.map(file => (
+                      <div
+                        key={file.id}
+                        className={`open-file-item ${currentFileId === file.id ? 'active' : ''}`}
+                        onClick={() => onSelectFile(file.id)}
+                        title={file.name}
+                      >
+                        <FileText size={13} className="tree-icon" style={{ color: getFileColor(file.name) }} />
+                        <span className="file-item-name">{file.name}</span>
+                        {file.isDirty && <span className="edit-indicator-small">E</span>}
+                        <button
+                          className="file-item-close"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCloseFile(file.id);
+                          }}
+                          title="Close"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {isCreatingNewFile && (
+                  <div className="tree-new-file-input">
+                    <FileText size={13} className="tree-icon" style={{ color: '#667eea' }} />
+                    <input
+                      type="text"
+                      className="new-file-input"
+                      value={newFileName}
+                      onChange={(e) => setNewFileName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCreateNewFile();
+                        } else if (e.key === 'Escape') {
+                          setIsCreatingNewFile(false);
+                        }
+                      }}
+                      onBlur={() => setIsCreatingNewFile(false)}
+                      autoFocus
+                    />
+                  </div>
+                )}
                 {renderTree(treeItems)}
               </div>
             : <div className="file-explorer-empty">
@@ -342,7 +380,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 </button>
                 <p className="file-explorer-hint">Chrome / Edge only</p>
               </div>
-        )}
+        }
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, CSSProperties } from 'react';
+import { Download, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -181,7 +182,6 @@ const XmlViewer: React.FC<{ content: string }> = ({ content }) => {
 interface PreviewPanelProps {
   content: string;
   filename?: string; // Track when file changes
-  zoom: number;
   style?: CSSProperties;
   imageZoom?: number;
   onImageContextMenu?: (e: React.MouseEvent) => void;
@@ -189,6 +189,7 @@ interface PreviewPanelProps {
   previewMode?: 'markdown' | 'html' | 'json' | 'xml';
   onScroll?: (ratio: number) => void;
   syncScrollRatio?: number;
+  onDownloadHtml?: () => void;
 }
 
 let mermaidInitialized = false;
@@ -372,7 +373,7 @@ const ImageWithZoom = ({ src, alt, onContextMenu, imageZoom, onImageZoomChange }
   );
 };
 
-const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', zoom, style, imageZoom = 100, onImageContextMenu, onImageZoomChange, previewMode = 'markdown', onScroll, syncScrollRatio = 0 }) => {
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', style, imageZoom = 100, onImageContextMenu, onImageZoomChange, previewMode = 'markdown', onScroll, syncScrollRatio = 0, onDownloadHtml }) => {
   const previewContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -535,6 +536,43 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', zoo
     <div className="preview-panel" style={style}>
       <div className="preview-header">
         <span>Preview</span>
+        <div className="preview-header-controls">
+          {onImageZoomChange && (
+            <div className="preview-zoom-group">
+              <span className="preview-zoom-label">Image:</span>
+              <button 
+                className="preview-zoom-btn"
+                onClick={() => onImageZoomChange('out')}
+                title="Zoom Out Image"
+                disabled={imageZoom <= 50}
+              >
+                <ZoomOut size={14} />
+              </button>
+              <span className="preview-zoom-display">{imageZoom}%</span>
+              <button 
+                className="preview-zoom-btn"
+                onClick={() => onImageZoomChange('in')}
+                title="Zoom In Image"
+                disabled={imageZoom >= 1600}
+              >
+                <ZoomIn size={14} />
+              </button>
+              <button 
+                className="preview-zoom-btn"
+                onClick={() => onImageZoomChange('reset')}
+                title="Reset Image Zoom"
+              >
+                <RotateCcw size={14} />
+              </button>
+            </div>
+          )}
+          {onDownloadHtml && (
+            <button className="preview-export-btn" onClick={onDownloadHtml} title="Export as HTML">
+              <Download size={14} />
+              <span>Export HTML</span>
+            </button>
+          )}
+        </div>
       </div>
       {previewMode === 'html' ? (
         <iframe
@@ -542,24 +580,19 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', zoo
           srcDoc={content}
           title="HTML Preview"
           sandbox="allow-scripts allow-same-origin allow-forms"
-          style={{ fontSize: `${10 * (zoom / 100)}px` }}
         />
       ) : previewMode === 'json' ? (
-        <div className="preview-content preview-viewer" style={{ fontSize: `${10 * (zoom / 100)}px` }}>
+        <div className="preview-content preview-viewer">
           <JsonViewer content={content} />
         </div>
       ) : previewMode === 'xml' ? (
-        <div className="preview-content preview-viewer" style={{ fontSize: `${10 * (zoom / 100)}px` }}>
+        <div className="preview-content preview-viewer">
           <XmlViewer content={content} />
         </div>
       ) : (
         <div
           ref={previewContentRef}
           className="preview-content"
-          style={{
-            fontSize: `${10 * (zoom / 100)}px`,
-            lineHeight: `${1.6 * (zoom / 100)}em`,
-          }}
         >
           <ReactMarkdown
             remarkPlugins={remarkPlugins}

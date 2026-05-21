@@ -21,6 +21,7 @@
   flex: 1;
   overflow: hidden;
   background-color: #f4f4f4;
+  color: #333;
   display: flex;
   flex-direction: row;
 }
@@ -52,6 +53,8 @@
   flex: 1;
   overflow: auto;
   position: relative;
+  color: #333;
+  background-color: #f4f4f4;
 }
 
 /* react-simple-code-editor container */
@@ -64,13 +67,29 @@
 .editor-code-container textarea {
   outline: none !important;
   caret-color: #333;
+  color: #333 !important;
+  text-shadow: 0 0 0 #333 !important;
   background: transparent !important;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace !important;
+  font-size: inherit !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #333 !important;
 }
 
 /* Pre element (highlighted display) */
 .editor-code-container pre {
   background: transparent !important;
   margin: 0 !important;
+  color: #333 !important;
+}
+
+.editor-code-container pre code {
+  color: #333 !important;
+}
+
+.editor-code-container pre code span {
+  color: inherit !important;
 }
 
 .editor-match-highlight {
