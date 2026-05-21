@@ -48,10 +48,10 @@ const jcl = (hljs: any) => ({
   name: 'JCL',
   case_insensitive: true,
   contains: [
-    hljs.COMMENT('\/\/\\*', '$'),
-    { className: 'keyword', begin: '^\\s*\/\/\\S+\\s+(JOB|EXEC|DD|PROC|PEND|SET|IF|THEN|ELSE|ENDIF|INCLUDE|JCLLIB|COMMAND|OUTPUT|XMIT)', end: '$' },
+    hljs.COMMENT('//\\*', '$'),
+    { className: 'keyword', begin: '^\\s*//\\S+\\s+(JOB|EXEC|DD|PROC|PEND|SET|IF|THEN|ELSE|ENDIF|INCLUDE|JCLLIB|COMMAND|OUTPUT|XMIT)', end: '$' },
     { className: 'string', begin: '\'', end: '\'', contains: [{ begin: '\'\'', relevance: 0 }] },
-    { className: 'symbol', begin: '^\\s*\/\/\\S+', end: '\\s' },
+    { className: 'symbol', begin: '^\\s*//\\S+', end: '\\s' },
     { className: 'attr', begin: 'DSN=|DISP=|SPACE=|DCB=|VOL=|UNIT=|SYSOUT=|PGM=' },
   ],
 });
@@ -180,6 +180,7 @@ const XmlViewer: React.FC<{ content: string }> = ({ content }) => {
 
 interface PreviewPanelProps {
   content: string;
+  filename?: string; // Track when file changes
   zoom: number;
   style?: CSSProperties;
   imageZoom?: number;
@@ -337,12 +338,15 @@ const ImageWithZoom = ({ src, alt, onContextMenu, imageZoom, onImageZoomChange }
         }
       };
 
-      imgRef.current.addEventListener('contextmenu', handleContextMenu);
-      imgRef.current.addEventListener('dblclick', handleDoubleClick);
+      const element = imgRef.current;
+      if (element) {
+        element.addEventListener('contextmenu', handleContextMenu);
+        element.addEventListener('dblclick', handleDoubleClick);
+      }
       return () => {
-        if (imgRef.current) {
-          imgRef.current.removeEventListener('contextmenu', handleContextMenu);
-          imgRef.current.removeEventListener('dblclick', handleDoubleClick);
+        if (element) {
+          element.removeEventListener('contextmenu', handleContextMenu);
+          element.removeEventListener('dblclick', handleDoubleClick);
         }
       };
     }
@@ -368,7 +372,7 @@ const ImageWithZoom = ({ src, alt, onContextMenu, imageZoom, onImageZoomChange }
   );
 };
 
-const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, zoom, style, imageZoom = 100, onImageContextMenu, onImageZoomChange, previewMode = 'markdown', onScroll, syncScrollRatio = 0 }) => {
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', zoom, style, imageZoom = 100, onImageContextMenu, onImageZoomChange, previewMode = 'markdown', onScroll, syncScrollRatio = 0 }) => {
   const previewContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -419,13 +423,18 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, zoom, style, image
 
   const isSyncingRef = useRef(false);
   const rafRef = useRef<number | null>(null);
+  const previousFilenameRef = useRef(filename);
+  const lastScrollEmitTimeRef = useRef(0); // Throttle scroll emissions
 
   // Handle scroll events and emit onScroll callback (throttled via RAF)
   useEffect(() => {
     const element = previewContentRef.current;
     if (!element) return;
     const handleScroll = () => {
-      if (!isSyncingRef.current && onScroll) {
+      // Only emit if NOT syncing from parent AND enough time since last emit
+      const now = Date.now();
+      if (!isSyncingRef.current && now - lastScrollEmitTimeRef.current > 200 && onScroll) {
+        lastScrollEmitTimeRef.current = now; // Update last emit time
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         rafRef.current = requestAnimationFrame(() => {
           const ratio = element.scrollHeight > element.clientHeight
@@ -446,11 +455,27 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, zoom, style, image
   useEffect(() => {
     const element = previewContentRef.current;
     if (!element || syncScrollRatio === undefined || syncScrollRatio === null) return;
+    
+    const maxScroll = element.scrollHeight - element.clientHeight;
+    if (maxScroll <= 0) return; // No scrollbar needed
+    
     isSyncingRef.current = true;
-    const scrollTop = syncScrollRatio * (element.scrollHeight - element.clientHeight);
-    element.scrollTop = Math.max(0, scrollTop);
-    setTimeout(() => { isSyncingRef.current = false; }, 30);
+    const scrollTop = Math.max(0, Math.min(syncScrollRatio * maxScroll, maxScroll));
+    element.scrollTop = scrollTop;
+    setTimeout(() => { isSyncingRef.current = false; }, 250);
   }, [syncScrollRatio]);
+
+  // Reset scroll to top only when switching to a different file
+  useEffect(() => {
+    if (filename !== previousFilenameRef.current) {
+      previousFilenameRef.current = filename;
+      const element = previewContentRef.current;
+      if (!element) return;
+      
+      // Reset scroll to top only on actual file change
+      element.scrollTop = 0;
+    }
+  }, [filename]);
 
   const remarkPlugins = useMemo(() => [remarkGfm, remarkMath] as any[], []);
   const rehypePlugins = useMemo(() => [

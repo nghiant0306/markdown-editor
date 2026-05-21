@@ -9,6 +9,8 @@ import ContextMenu from './components/ContextMenu';
 import FileExplorer from './components/FileExplorer';
 import HelpPanel from './components/HelpPanel';
 import ChatPanel from './components/ChatPanel';
+import { FindReplacePanel } from './components/FindReplacePanel';
+import { GoToLinePanel } from './components/GoToLinePanel';
 
 interface EditorState {
   content: string;
@@ -75,8 +77,15 @@ This is a test image. Try right-clicking on it!
   const [explorerWidth, setExplorerWidth] = useState(280);
   const [encoding, setEncoding] = useState('UTF-8');
   const [scrollSyncRatio, setScrollSyncRatio] = useState<number | null>(null);
+  const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const [findReplaceShowReplace, setFindReplaceShowReplace] = useState(false);
+  const [findMatches, setFindMatches] = useState<Array<{ start: number; end: number }>>([]);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
+  const [replacedMatches, setReplacedMatches] = useState<Array<{ start: number; end: number }>>([]);
+  const [goToLineOpen, setGoToLineOpen] = useState(false);
   const scrollSyncSourceRef = useRef<'editor' | 'preview' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const isResizing = useRef(false);
   const isResizingExplorer = useRef(false);
   const explorerStartX = useRef(0);
@@ -479,7 +488,7 @@ ${htmlContent}
     };
     const lang = EXT_TO_LANG[ext] || ext;
     return '```' + lang + '\n' + editorState.content + '\n```';
-  }, [editorState.content, editorState.filename]);
+  }, [editorState.content, editorState.filename, csvToMarkdownTable]);
 
   const handleImageContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -511,6 +520,96 @@ ${htmlContent}
     scrollSyncSourceRef.current = 'preview';
     setScrollSyncRatio(ratio);
   }, []);
+
+  const handleFind = useCallback((findText: string, caseSensitive: boolean) => {
+    if (!findText) {
+      setFindMatches([]);
+      setCurrentMatchIndex(0);
+      return;
+    }
+    const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), caseSensitive ? 'g' : 'gi');
+    const matches: Array<{ start: number; end: number }> = [];
+    let match;
+    while ((match = regex.exec(editorState.content)) !== null) {
+      matches.push({ start: match.index, end: match.index + match[0].length });
+    }
+    setFindMatches(matches);
+    setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
+  }, [editorState.content]);
+
+  const handleReplace = useCallback((findText: string, replaceText: string, caseSensitive: boolean, replaceAll: boolean) => {
+    if (!findText) return;
+    const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), caseSensitive ? 'g' : 'gi');
+    let newContent: string;
+    if (replaceAll) {
+      newContent = editorState.content.replace(regex, replaceText);
+      // After Replace All, highlight the replaced text
+      handleContentChange(newContent);
+      // Find and highlight the replacement text positions
+      const replaceRegex = new RegExp(replaceText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+      const replacedPositions: Array<{ start: number; end: number }> = [];
+      let match;
+      while ((match = replaceRegex.exec(newContent)) !== null) {
+        replacedPositions.push({ start: match.index, end: match.index + match[0].length });
+      }
+      setReplacedMatches(replacedPositions);
+      setFindMatches([]);
+      setCurrentMatchIndex(-1);
+    } else {
+      if (currentMatchIndex >= 0 && findMatches.length > 0) {
+        const match = findMatches[currentMatchIndex];
+        newContent = editorState.content.substring(0, match.start) + replaceText + editorState.content.substring(match.end);
+        handleContentChange(newContent);
+        // Calculate matches in new content
+        const matches: Array<{ start: number; end: number }> = [];
+        let m;
+        while ((m = regex.exec(newContent)) !== null) {
+          matches.push({ start: m.index, end: m.index + m[0].length });
+        }
+        setFindMatches(matches);
+        setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
+        setReplacedMatches([]);
+      } else {
+        return;
+      }
+    }
+  }, [editorState.content, currentMatchIndex, findMatches, handleContentChange]);
+
+  const handleToggleComment = useCallback(() => {
+    const lines = editorState.content.split('\n');
+    const isMarkdown = editorState.filename.toLowerCase().endsWith('.md') || editorState.filename.toLowerCase().endsWith('.markdown');
+    const commentPrefix = isMarkdown ? '> ' : '// ';
+    
+    let newContent: string;
+    // Check if first line is already commented
+    const isCommented = lines.some(line => line.trimStart().startsWith(commentPrefix));
+    
+    if (isCommented) {
+      // Uncomment
+      newContent = lines.map(line => {
+        if (line.trimStart().startsWith(commentPrefix)) {
+          return line.replace(commentPrefix, '');
+        }
+        return line;
+      }).join('\n');
+    } else {
+      // Comment
+      newContent = lines.map(line => commentPrefix + line).join('\n');
+    }
+    
+    handleContentChange(newContent);
+  }, [editorState.content, editorState.filename, handleContentChange]);
+
+  const handleGoToLine = useCallback((lineNumber: number) => {
+    const lines = editorState.content.split('\n');
+    if (lineNumber < 1 || lineNumber > lines.length) return;
+    
+    const lineHeight = 20; // Approximate line height in pixels
+    const scrollTop = (lineNumber - 1) * lineHeight;
+    if (editorContainerRef.current) {
+      editorContainerRef.current.scrollTop = Math.max(0, scrollTop - 100); // Scroll with 100px offset from top
+    }
+  }, [editorState.content]);
 
   useEffect(() => {
     // Global contextmenu handler for images and mermaid diagrams
@@ -583,6 +682,45 @@ ${htmlContent}
     };
   }, []);
 
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+F or Cmd+F: Find
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setFindReplaceOpen(true);
+        setFindReplaceShowReplace(false);
+        setGoToLineOpen(false);
+      }
+      // Ctrl+H or Cmd+H: Find & Replace
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+        e.preventDefault();
+        setFindReplaceOpen(true);
+        setFindReplaceShowReplace(true);
+        setGoToLineOpen(false);
+      }
+      // Ctrl+S or Cmd+S: Save
+      else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+      // Ctrl+/ or Cmd+/: Toggle comment
+      else if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        handleToggleComment();
+      }
+      // Ctrl+G or Cmd+G: Go to line
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+        e.preventDefault();
+        setGoToLineOpen(true);
+        setFindReplaceOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave, handleToggleComment]);
+
   return (
     <div className="app">
       <MenuBar 
@@ -641,6 +779,10 @@ ${htmlContent}
             style={{ flex: `0 0 ${splitPosition}%` }}
             onScroll={handleEditorScroll}
             syncScrollRatio={scrollSyncSourceRef.current === 'preview' ? scrollSyncRatio : undefined}
+            matches={findMatches}
+            currentMatchIndex={currentMatchIndex}
+            replacedMatches={replacedMatches}
+            containerRef={editorContainerRef}
           />
           {showPreview && (
             <>
@@ -650,6 +792,7 @@ ${htmlContent}
               />
               <PreviewPanel
                 content={previewContent}
+                filename={editorState.filename}
                 zoom={editorState.zoom}
                 style={{ flex: `0 0 ${100 - splitPosition}%` }}
                 imageZoom={imageZoom}
@@ -662,6 +805,31 @@ ${htmlContent}
             </>
           )}
         </div>
+        {(findReplaceOpen || goToLineOpen) && (
+          <div className="right-panel-container">
+            {findReplaceOpen && (
+              <FindReplacePanel
+                isOpen={findReplaceOpen}
+                showReplace={findReplaceShowReplace}
+                onClose={() => setFindReplaceOpen(false)}
+                onFind={handleFind}
+                onReplace={handleReplace}
+                matchCount={findMatches.length}
+                currentMatch={currentMatchIndex + 1}
+                onPrevMatch={() => setCurrentMatchIndex(Math.max(0, currentMatchIndex - 1))}
+                onNextMatch={() => setCurrentMatchIndex(Math.min(findMatches.length - 1, currentMatchIndex + 1))}
+              />
+            )}
+            {goToLineOpen && (
+              <GoToLinePanel
+                isOpen={goToLineOpen}
+                onClose={() => setGoToLineOpen(false)}
+                onGoToLine={handleGoToLine}
+                totalLines={editorState.content.split('\n').length}
+              />
+            )}
+          </div>
+        )}
         {showChat && (
           <div className="chat-panel-container">
             <ChatPanel
