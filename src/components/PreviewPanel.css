@@ -43,6 +43,29 @@
   flex-shrink: 0;
 }
 
+.preview-maximize-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  background-color: transparent;
+  border: 1px solid #d0d0d0;
+  color: #666;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preview-maximize-btn:hover {
+  background-color: #e8e8ff;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.preview-maximize-btn:active {
+  transform: scale(0.95);
+}
+
 .preview-header-controls {
   display: flex;
   align-items: center;
