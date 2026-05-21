@@ -1,12 +1,182 @@
-import { useEffect, useMemo, useRef, CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, CSSProperties } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import mermaid from 'mermaid';
+import rehypeHighlight from 'rehype-highlight';
+import { common } from 'lowlight';
 import 'highlight.js/styles/atom-one-light.css';
 import 'katex/dist/katex.min.css';
 import './PreviewPanel.css';
+
+// Custom COBOL language definition for highlight.js
+const cobol = (hljs: any) => ({
+  name: 'COBOL',
+  case_insensitive: true,
+  keywords: {
+    keyword:
+      'IDENTIFICATION DIVISION PROGRAM-ID AUTHOR DATE-WRITTEN ENVIRONMENT CONFIGURATION ' +
+      'SOURCE-COMPUTER OBJECT-COMPUTER INPUT-OUTPUT SECTION FILE-CONTROL SELECT ASSIGN ' +
+      'DATA FILE WORKING-STORAGE LOCAL-STORAGE LINKAGE FD PIC PICTURE VALUE OCCURS ' +
+      'REDEFINES INDEXED DEPENDING ON RENAMES COPY REPLACING ' +
+      'PROCEDURE PERFORM UNTIL VARYING FROM BY AFTER BEFORE ' +
+      'MOVE TO COMPUTE ADD SUBTRACT MULTIPLY DIVIDE GIVING REMAINDER ' +
+      'IF ELSE END-IF EVALUATE WHEN OTHER END-EVALUATE ' +
+      'READ WRITE REWRITE DELETE OPEN CLOSE START ' +
+      'CALL USING RETURNING EXIT STOP RUN GOBACK ' +
+      'DISPLAY ACCEPT STRING UNSTRING INSPECT TALLYING REPLACING ' +
+      'INITIALIZE SET SEARCH ALL ' +
+      'GO THRU THROUGH ALTER ' +
+      'NOT AND OR ' +
+      'ZERO ZEROS ZEROES SPACE SPACES HIGH-VALUE LOW-VALUE QUOTE QUOTES ' +
+      'TRUE FALSE',
+    type: 'PIC PICTURE COMP COMP-1 COMP-2 COMP-3 COMP-4 COMP-5 BINARY PACKED-DECIMAL DISPLAY',
+  },
+  contains: [
+    hljs.COMMENT('\\*', '$'),
+    hljs.COMMENT('^......\\*', '$'),
+    { className: 'string', begin: '\'', end: '\'', illegal: '\\n' },
+    { className: 'string', begin: '"', end: '"', illegal: '\\n' },
+    { className: 'number', begin: '\\b\\d+(\\.\\d+)?\\b' },
+    { className: 'symbol', begin: '^[0-9]{6}' }, // sequence numbers
+  ],
+});
+
+// Simple JCL language definition
+const jcl = (hljs: any) => ({
+  name: 'JCL',
+  case_insensitive: true,
+  contains: [
+    hljs.COMMENT('\/\/\\*', '$'),
+    { className: 'keyword', begin: '^\\s*\/\/\\S+\\s+(JOB|EXEC|DD|PROC|PEND|SET|IF|THEN|ELSE|ENDIF|INCLUDE|JCLLIB|COMMAND|OUTPUT|XMIT)', end: '$' },
+    { className: 'string', begin: '\'', end: '\'', contains: [{ begin: '\'\'', relevance: 0 }] },
+    { className: 'symbol', begin: '^\\s*\/\/\\S+', end: '\\s' },
+    { className: 'attr', begin: 'DSN=|DISP=|SPACE=|DCB=|VOL=|UNIT=|SYSOUT=|PGM=' },
+  ],
+});
+
+// ===================== JSON Viewer =====================
+const JvValue: React.FC<{ v: any; depth: number }> = ({ v, depth }) => {
+  if (v === null) return <span className="jv-null">null</span>;
+  if (v === true || v === false) return <span className="jv-bool">{String(v)}</span>;
+  if (typeof v === 'number') return <span className="jv-num">{v}</span>;
+  if (typeof v === 'string') return <span className="jv-str">"{v}"</span>;
+  return <JvNode data={v} depth={depth} />;
+};
+
+const JvNode: React.FC<{ data: any; depth: number }> = ({ data, depth }) => {
+  const [open, setOpen] = useState(depth < 3);
+  const isArr = Array.isArray(data);
+  const entries: [string | number, any][] = isArr
+    ? data.map((v: any, i: number) => [i, v])
+    : Object.entries(data);
+  const ob = isArr ? '[' : '{';
+  const cb = isArr ? ']' : '}';
+  if (entries.length === 0) return <span className="jv-brace">{ob}{cb}</span>;
+  return (
+    <span>
+      <span className="jv-toggle" onClick={() => setOpen(o => !o)} role="button">{open ? '▾ ' : '▸ '}</span>
+      <span className="jv-brace">{ob}</span>
+      {open ? (
+        <>
+          <div className="jv-block">
+            {entries.map(([k, v], i) => (
+              <div key={String(k)} className="jv-row">
+                {!isArr && <><span className="jv-key">"{k}"</span><span className="jv-colon">: </span></>}
+                <JvValue v={v} depth={depth + 1} />
+                {i < entries.length - 1 && <span className="jv-comma">,</span>}
+              </div>
+            ))}
+          </div>
+          <span className="jv-brace">{cb}</span>
+        </>
+      ) : (
+        <><span className="jv-ellipsis" onClick={() => setOpen(true)} role="button"> …{entries.length} </span><span className="jv-brace">{cb}</span></>
+      )}
+    </span>
+  );
+};
+
+const JsonViewer: React.FC<{ content: string }> = ({ content }) => {
+  const result = useMemo(() => {
+    try { return { data: JSON.parse(content), error: null }; }
+    catch (e: any) { return { data: null, error: e.message }; }
+  }, [content]);
+  if (result.error) return <div className="jv-error">⚠ JSON parse error: {result.error}</div>;
+  return (
+    <div className="jv-root">
+      {typeof result.data === 'object' && result.data !== null
+        ? <JvNode data={result.data} depth={0} />
+        : <JvValue v={result.data} depth={0} />}
+    </div>
+  );
+};
+
+// ===================== XML Viewer =====================
+const XvNode: React.FC<{ node: Node; depth: number }> = ({ node, depth }) => {
+  const [open, setOpen] = useState(depth < 3);
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = node.textContent?.trim() ?? '';
+    if (!text) return null;
+    return <span className="xv-text">{text}</span>;
+  }
+  if (node.nodeType === Node.COMMENT_NODE) {
+    return <div className="xv-comment">&lt;!-- {node.textContent} --&gt;</div>;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return null;
+  const el = node as Element;
+  const attrs = Array.from(el.attributes);
+  const children = Array.from(el.childNodes).filter(n =>
+    n.nodeType !== Node.TEXT_NODE || (n.textContent?.trim() ?? '')
+  );
+  const tag = el.tagName;
+  if (children.length === 0) {
+    return (
+      <div className="xv-el">
+        &lt;<span className="xv-tag">{tag}</span>
+        {attrs.map(a => <span key={a.name}> <span className="xv-attr">{a.name}</span>=<span className="xv-val">"{a.value}"</span></span>)}
+        /&gt;
+      </div>
+    );
+  }
+  return (
+    <div className="xv-el">
+      <span className="xv-toggle" onClick={() => setOpen(o => !o)} role="button">{open ? '▾' : '▸'}</span>
+      &lt;<span className="xv-tag">{tag}</span>
+      {attrs.map(a => <span key={a.name}> <span className="xv-attr">{a.name}</span>=<span className="xv-val">"{a.value}"</span></span>)}
+      &gt;
+      {open ? (
+        <>
+          <div className="xv-block">
+            {children.map((c, i) => <XvNode key={i} node={c} depth={depth + 1} />)}
+          </div>
+          &lt;/<span className="xv-tag">{tag}</span>&gt;
+        </>
+      ) : (
+        <><span className="xv-ellipsis" onClick={() => setOpen(true)} role="button"> … </span>&lt;/<span className="xv-tag">{tag}</span>&gt;</>
+      )}
+    </div>
+  );
+};
+
+const XmlViewer: React.FC<{ content: string }> = ({ content }) => {
+  const result = useMemo(() => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, 'application/xml');
+      const errEl = doc.querySelector('parsererror');
+      if (errEl) return { doc: null, error: errEl.textContent };
+      return { doc, error: null };
+    } catch (e: any) { return { doc: null, error: e.message }; }
+  }, [content]);
+  if (result.error) return <div className="xv-error">⚠ XML parse error: {result.error}</div>;
+  return (
+    <div className="xv-root">
+      {Array.from(result.doc!.childNodes).map((n: Node, i) => <XvNode key={i} node={n} depth={0} />)}
+    </div>
+  );
+};
 
 interface PreviewPanelProps {
   content: string;
@@ -15,6 +185,7 @@ interface PreviewPanelProps {
   imageZoom?: number;
   onImageContextMenu?: (e: React.MouseEvent) => void;
   onImageZoomChange?: (direction: 'in' | 'out' | 'reset') => void;
+  previewMode?: 'markdown' | 'html' | 'json' | 'xml';
 }
 
 let mermaidInitialized = false;
@@ -195,7 +366,7 @@ const ImageWithZoom = ({ src, alt, onContextMenu, imageZoom, onImageZoomChange }
   );
 };
 
-const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, zoom, style, imageZoom = 100, onImageContextMenu, onImageZoomChange }) => {
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, zoom, style, imageZoom = 100, onImageContextMenu, onImageZoomChange, previewMode = 'markdown' }) => {
   const previewContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -244,8 +415,11 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, zoom, style, image
     }
   }, [onImageContextMenu]);
 
-  const remarkPlugins = useMemo(() => [remarkGfm, remarkMath], []);
-  const rehypePlugins = useMemo(() => [rehypeKatex], []);
+  const remarkPlugins = useMemo(() => [remarkGfm, remarkMath] as any[], []);
+  const rehypePlugins = useMemo(() => [
+    rehypeKatex,
+    [rehypeHighlight, { languages: { ...common, cobol, jcl }, detect: true }],
+  ], []);
 
   const components = useMemo(
     () => ({
@@ -300,22 +474,40 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, zoom, style, image
       <div className="preview-header">
         <span>Preview</span>
       </div>
-      <div
-        ref={previewContentRef}
-        className="preview-content"
-        style={{
-          fontSize: `${10 * (zoom / 100)}px`,
-          lineHeight: `${1.6 * (zoom / 100)}em`,
-        }}
-      >
-        <ReactMarkdown
-          remarkPlugins={remarkPlugins}
-          rehypePlugins={rehypePlugins}
-          components={components}
+      {previewMode === 'html' ? (
+        <iframe
+          className="preview-html-frame"
+          srcDoc={content}
+          title="HTML Preview"
+          sandbox="allow-scripts allow-same-origin allow-forms"
+          style={{ fontSize: `${10 * (zoom / 100)}px` }}
+        />
+      ) : previewMode === 'json' ? (
+        <div className="preview-content preview-viewer" style={{ fontSize: `${10 * (zoom / 100)}px` }}>
+          <JsonViewer content={content} />
+        </div>
+      ) : previewMode === 'xml' ? (
+        <div className="preview-content preview-viewer" style={{ fontSize: `${10 * (zoom / 100)}px` }}>
+          <XmlViewer content={content} />
+        </div>
+      ) : (
+        <div
+          ref={previewContentRef}
+          className="preview-content"
+          style={{
+            fontSize: `${10 * (zoom / 100)}px`,
+            lineHeight: `${1.6 * (zoom / 100)}em`,
+          }}
         >
-          {content}
-        </ReactMarkdown>
-      </div>
+          <ReactMarkdown
+            remarkPlugins={remarkPlugins}
+            rehypePlugins={rehypePlugins as any}
+            components={components}
+          >
+            {content}
+          </ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 };

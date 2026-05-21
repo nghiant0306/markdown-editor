@@ -154,20 +154,145 @@
   background-color: #c0c0c0;
 }
 
-/* Scrollbar styling */
-.file-explorer-content::-webkit-scrollbar {
-  width: 8px;
+/* ── Tabs ── */
+.fe-encoding-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: #eef0f5;
+  border-bottom: 1px solid #d0d0d0;
+  flex-shrink: 0;
 }
 
-.file-explorer-content::-webkit-scrollbar-track {
-  background: transparent;
+.fe-encoding-label {
+  font-size: 10px;
+  color: #666;
+  white-space: nowrap;
 }
 
-.file-explorer-content::-webkit-scrollbar-thumb {
-  background: #ccc;
+.fe-encoding-select {
+  font-size: 10px;
+  padding: 2px 4px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.fe-encoding-select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.fe-tabs {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+
+.fe-tab {
+  background: none;
+  border: none;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #888;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+
+.fe-tab:hover { color: #444; background: #eee; }
+.fe-tab.active { color: #667eea; font-weight: 700; background: #eef0ff; }
+
+/* ── Open Folder button (inside empty state) ── */
+.open-folder-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 8px auto 4px;
+  padding: 5px 10px;
+  background: #667eea;
+  color: white;
+  border: none;
   border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.file-explorer-content::-webkit-scrollbar-thumb:hover {
-  background: #999;
+.open-folder-btn:hover { background: #5a6fd6; }
+
+/* ── Tree View ── */
+.tree-view {
+  padding: 4px 0;
 }
+
+.tree-root-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #444;
+  background: #ececec;
+  border-bottom: 1px solid #e0e0e0;
+  user-select: none;
+}
+
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-right: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+  font-size: 11px;
+  color: #333;
+  min-width: 0;
+}
+
+.tree-item:hover { background: #e8eaff; }
+
+.tree-folder { font-weight: 500; }
+
+.tree-arrow {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #999;
+}
+
+.tree-icon { flex-shrink: 0; }
+
+.folder-icon { color: #f5a623; }
+
+.tree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.tree-loading {
+  font-size: 9px;
+  color: #aaa;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.tree-file-binary {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tree-file-binary:hover { background: none; }

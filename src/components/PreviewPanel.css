@@ -24,6 +24,48 @@
   color: #333;
 }
 
+.preview-html-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: white;
+}
+
+.preview-viewer {
+  line-height: 1.6 !important;
+}
+
+/* ---- JSON Viewer ---- */
+.jv-root { font-family: 'Monaco','Menlo','Consolas',monospace; padding: 12px; }
+.jv-block { margin-left: 20px; border-left: 1px solid #e0e0e0; padding-left: 4px; }
+.jv-row { margin: 1px 0; }
+.jv-toggle, .jv-ellipsis { cursor: pointer; user-select: none; }
+.jv-toggle { color: #999; font-size: 0.8em; }
+.jv-ellipsis { color: #aaa; font-style: italic; }
+.jv-key   { color: #c0392b; }
+.jv-str   { color: #27ae60; }
+.jv-num   { color: #2980b9; }
+.jv-bool  { color: #8e44ad; font-weight: bold; }
+.jv-null  { color: #95a5a6; font-weight: bold; }
+.jv-brace { color: #555; font-weight: bold; }
+.jv-colon { color: #555; }
+.jv-comma { color: #555; }
+.jv-error { color: #e74c3c; background: #fdf0ef; padding: 10px; border-radius: 4px; }
+
+/* ---- XML Viewer ---- */
+.xv-root  { font-family: 'Monaco','Menlo','Consolas',monospace; padding: 12px; }
+.xv-block { margin-left: 20px; border-left: 1px solid #e0e0e0; padding-left: 4px; }
+.xv-el    { margin: 1px 0; }
+.xv-toggle, .xv-ellipsis { cursor: pointer; user-select: none; }
+.xv-toggle { color: #999; font-size: 0.8em; margin-right: 2px; }
+.xv-ellipsis { color: #aaa; font-style: italic; }
+.xv-tag   { color: #2980b9; font-weight: bold; }
+.xv-attr  { color: #c0392b; }
+.xv-val   { color: #27ae60; }
+.xv-text  { color: #333; }
+.xv-comment { color: #95a5a6; font-style: italic; margin: 1px 0; }
+.xv-error { color: #e74c3c; background: #fdf0ef; padding: 10px; border-radius: 4px; }
+
 .preview-content::-webkit-scrollbar {
   width: 10px;
 }
@@ -254,15 +296,17 @@ em, i {
   margin: 1em 0;
   overflow-x: auto;
   line-height: 1.5;
+  white-space: pre;
 }
 
 .preview-content pre code {
   background-color: transparent;
   border: none;
   padding: 0;
-  color: #333;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'monospace';
   font-size: 0.9em;
+  white-space: pre;
+  /* Do NOT set color here — let highlight.js colors show through */
 }
 
 /* =====================================================

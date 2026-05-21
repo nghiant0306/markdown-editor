@@ -14,9 +14,8 @@
 }
 
 .file-explorer-panel {
-  width: 280px;
   background-color: #f5f5f5;
-  border-right: 1px solid #d0d0d0;
+  border-right: none;
   flex-shrink: 0;
   overflow: hidden;
 }

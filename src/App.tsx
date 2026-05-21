@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import './App.css';
 import MenuBar from './components/MenuBar';
 import Toolbar from './components/Toolbar';
@@ -22,6 +22,8 @@ interface OpenFile {
   name: string;
   content: string;
   isDirty: boolean;
+  handle?: any;   // FileSystemFileHandle for Explorer files
+  fileRef?: File; // File object for dialog-opened files
 }
 
 const App: React.FC = () => {
@@ -65,13 +67,22 @@ This is a test image. Try right-clicking on it!
   const [splitPosition, setSplitPosition] = useState(50); // percentage
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
   const [imageZoom, setImageZoom] = useState(100); // image zoom level
-  const [showFileExplorer, setShowFileExplorer] = useState(false);
+  const [showFileExplorer, setShowFileExplorer] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [openFiles, setOpenFiles] = useState<OpenFile[]>([]);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
+  const [explorerWidth, setExplorerWidth] = useState(280);
+  const [encoding, setEncoding] = useState('UTF-8');
   const containerRef = useRef<HTMLDivElement>(null);
   const isResizing = useRef(false);
+  const isResizingExplorer = useRef(false);
+  const explorerStartX = useRef(0);
+  const explorerStartWidth = useRef(280);
+  const openFilesRef = useRef(openFiles);
+  useEffect(() => { openFilesRef.current = openFiles; }, [openFiles]);
+  const encodingRef = useRef(encoding);
+  useEffect(() => { encodingRef.current = encoding; }, [encoding]);
 
   const handleContentChange = useCallback((newContent: string) => {
     setEditorState(prev => ({
@@ -278,7 +289,7 @@ ${htmlContent}
   const handleFileExplorerOpen = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.md,.markdown,.txt';
+    input.accept = '.md,.markdown,.txt,.ts,.tsx,.js,.jsx,.json,.css,.scss,.html,.htm,.xml,.yaml,.yml,.sh,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.sql,.log,.csv,.tsv';
     input.multiple = true;
     input.onchange = (e: any) => {
       const files = e.target.files;
@@ -311,18 +322,48 @@ ${htmlContent}
     input.click();
   }, []);
 
+  const handleOpenFileWithContent = useCallback((name: string, content: string, handle?: any, fileRef?: File) => {
+    const newFileId = Date.now().toString() + Math.random();
+    setOpenFiles(prev => {
+      const filtered = prev.filter(f => f.name !== name);
+      return [...filtered, { id: newFileId, name, content, isDirty: false, handle, fileRef }];
+    });
+    setCurrentFileId(newFileId);
+    setEditorState(e => ({ ...e, content, filename: name, isDirty: false }));
+  }, []);
+
   const handleSelectFile = useCallback((fileId: string) => {
     setCurrentFileId(fileId);
-    const file = openFiles.find(f => f.id === fileId);
-    if (file) {
-      setEditorState(prev => ({
-        ...prev,
-        content: file.content,
-        filename: file.name,
-        isDirty: file.isDirty,
-      }));
+    const file = openFilesRef.current.find(f => f.id === fileId);
+    if (!file) return;
+
+    const loadAndShow = (content: string) => {
+      // Update stored content with freshly decoded version
+      setOpenFiles(prev => prev.map(f => f.id === fileId ? { ...f, content } : f));
+      setEditorState(prev => ({ ...prev, content, filename: file.name, isDirty: false }));
+    };
+
+    if (file.handle) {
+      // Re-read from disk with current encoding
+      file.handle.getFile().then((f: File) => f.arrayBuffer()).then((buf: ArrayBuffer) => {
+        const content = new TextDecoder(encodingRef.current).decode(buf);
+        loadAndShow(content);
+      }).catch(() => {
+        // Fallback to cached content if permission lost
+        setEditorState(prev => ({ ...prev, content: file.content, filename: file.name, isDirty: file.isDirty }));
+      });
+    } else if (file.fileRef) {
+      // Re-read File object with current encoding
+      file.fileRef.arrayBuffer().then((buf: ArrayBuffer) => {
+        const content = new TextDecoder(encodingRef.current).decode(buf);
+        loadAndShow(content);
+      }).catch(() => {
+        setEditorState(prev => ({ ...prev, content: file.content, filename: file.name, isDirty: file.isDirty }));
+      });
+    } else {
+      setEditorState(prev => ({ ...prev, content: file.content, filename: file.name, isDirty: file.isDirty }));
     }
-  }, [openFiles]);
+  }, []);
 
   const handleCloseFile = useCallback((fileId: string) => {
     setOpenFiles(prev => prev.filter(f => f.id !== fileId));
@@ -340,6 +381,103 @@ ${htmlContent}
   const handleMouseDownDivider = useCallback(() => {
     isResizing.current = true;
   }, []);
+
+  const previewMode = useMemo((): 'markdown' | 'html' | 'json' | 'xml' => {
+    const ext = editorState.filename.split('.').pop()?.toLowerCase() || '';
+    if (ext === 'html' || ext === 'htm') return 'html';
+    if (ext === 'json' || ext === 'jsonc' || ext === 'json5') return 'json';
+    if (ext === 'xml' || ext === 'svg' || ext === 'xhtml' || ext === 'xsl' || ext === 'xslt') return 'xml';
+    return 'markdown';
+  }, [editorState.filename]);
+
+  const csvToMarkdownTable = useCallback((raw: string, delimiter: string): string => {
+    const parseRow = (line: string): string[] => {
+      const cells: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+          else { inQuotes = !inQuotes; }
+        } else if (ch === delimiter && !inQuotes) {
+          cells.push(current.trim());
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      cells.push(current.trim());
+      return cells;
+    };
+    const lines = raw.split('\n').filter(l => l.trim());
+    if (lines.length === 0) return '';
+    const rows = lines.map(parseRow);
+    const colCount = Math.max(...rows.map(r => r.length));
+    const padded = rows.map(r => { while (r.length < colCount) r.push(''); return r; });
+    const escape = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+    const toRow = (cells: string[]) => '| ' + cells.map(escape).join(' | ') + ' |';
+    const sep = toRow(Array(colCount).fill('---'));
+    return [toRow(padded[0]), sep, ...padded.slice(1).map(toRow)].join('\n');
+  }, []);
+
+  const previewContent = useMemo(() => {
+    const ext = editorState.filename.split('.').pop()?.toLowerCase() || '';
+    const markdownExts = new Set(['md', 'markdown']);
+    const plainTextExts = new Set(['txt', 'text', 'log', 'ini', 'cfg', 'conf', 'properties', 'env']);
+    if (markdownExts.has(ext) || ext === '') return editorState.content;
+    if (ext === 'html' || ext === 'htm') return editorState.content;
+    if (ext === 'json' || ext === 'jsonc' || ext === 'json5') return editorState.content;
+    if (ext === 'xml' || ext === 'svg' || ext === 'xhtml' || ext === 'xsl' || ext === 'xslt') return editorState.content;
+    if (ext === 'csv') return csvToMarkdownTable(editorState.content, ',');
+    if (ext === 'tsv') return csvToMarkdownTable(editorState.content, '\t');
+    if (plainTextExts.has(ext)) return '```\n' + editorState.content + '\n```';
+    const EXT_TO_LANG: Record<string, string> = {
+      // COBOL / legacy
+      cbl: 'cobol', cob: 'cobol', cpy: 'cobol', pco: 'cobol',
+      jcl: 'jcl',
+      // Web
+      js: 'javascript', jsx: 'javascript', mjs: 'javascript', cjs: 'javascript',
+      ts: 'typescript', tsx: 'typescript',
+      html: 'html', htm: 'html', xml: 'xml', svg: 'xml',
+      css: 'css', scss: 'scss', less: 'less',
+      // Backend
+      py: 'python', pyw: 'python',
+      rb: 'ruby',
+      php: 'php',
+      java: 'java',
+      cs: 'csharp',
+      go: 'go',
+      rs: 'rust',
+      swift: 'swift',
+      kt: 'kotlin',
+      scala: 'scala',
+      // C family
+      c: 'c', h: 'c', cpp: 'cpp', cc: 'cpp', cxx: 'cpp', hpp: 'cpp',
+      // Shell
+      sh: 'bash', bash: 'bash', zsh: 'bash', fish: 'bash',
+      ps1: 'powershell', psm1: 'powershell',
+      bat: 'dos', cmd: 'dos',
+      // Data
+      json: 'json', jsonc: 'json',
+      yaml: 'yaml', yml: 'yaml',
+      toml: 'ini', ini: 'ini', cfg: 'ini',
+      sql: 'sql',
+      graphql: 'graphql', gql: 'graphql',
+      // Other
+      dockerfile: 'dockerfile',
+      makefile: 'makefile',
+      r: 'r', lua: 'lua', dart: 'dart',
+      pl: 'perl', pm: 'perl',
+      hs: 'haskell',
+      ex: 'elixir', exs: 'elixir',
+      tf: 'hcl', tfvars: 'hcl',
+      proto: 'protobuf',
+      diff: 'diff', patch: 'diff',
+    };
+    const lang = EXT_TO_LANG[ext] || ext;
+    return '```' + lang + '\n' + editorState.content + '\n```';
+  }, [editorState.content, editorState.filename]);
 
   const handleImageContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -392,6 +530,12 @@ ${htmlContent}
     };
 
     const handleMouseMove = (e: MouseEvent) => {
+      if (isResizingExplorer.current) {
+        const delta = e.clientX - explorerStartX.current;
+        const newWidth = Math.min(Math.max(explorerStartWidth.current + delta, 150), 600);
+        setExplorerWidth(newWidth);
+        return;
+      }
       if (!isResizing.current || !containerRef.current) return;
 
       const container = containerRef.current;
@@ -406,6 +550,7 @@ ${htmlContent}
 
     const handleMouseUp = () => {
       isResizing.current = false;
+      isResizingExplorer.current = false;
     };
 
     console.log('Attaching context menu listener to document (capture phase)');
@@ -451,7 +596,8 @@ ${htmlContent}
       />
       <div className="editor-container" ref={containerRef}>
         {showFileExplorer && (
-          <div className="file-explorer-panel">
+          <>
+          <div className="file-explorer-panel" style={{ width: explorerWidth }}>
             <FileExplorer
               openFiles={openFiles}
               currentFileId={currentFileId}
@@ -459,14 +605,27 @@ ${htmlContent}
               onCloseFile={handleCloseFile}
               onNewFile={handleFileExplorerNew}
               onOpenFile={handleFileExplorerOpen}
+              onOpenFileWithContent={handleOpenFileWithContent}
+              encoding={encoding}
+              onEncodingChange={setEncoding}
             />
           </div>
+          <div
+            className="resize-divider"
+            onMouseDown={(e) => {
+              isResizingExplorer.current = true;
+              explorerStartX.current = e.clientX;
+              explorerStartWidth.current = explorerWidth;
+            }}
+          />
+          </>
         )}
         <div className="editor-workspace" style={{ flex: 1, display: 'flex' }}>
           <EditorPanel
             content={editorState.content}
             onChange={handleContentChange}
             zoom={editorState.zoom}
+            filename={editorState.filename}
             style={{ flex: `0 0 ${splitPosition}%` }}
           />
           {showPreview && (
@@ -476,12 +635,13 @@ ${htmlContent}
                 onMouseDown={handleMouseDownDivider}
               />
               <PreviewPanel
-                content={editorState.content}
+                content={previewContent}
                 zoom={editorState.zoom}
                 style={{ flex: `0 0 ${100 - splitPosition}%` }}
                 imageZoom={imageZoom}
                 onImageContextMenu={handleImageContextMenu}
                 onImageZoomChange={handleImageZoom}
+                previewMode={previewMode}
               />
             </>
           )}
