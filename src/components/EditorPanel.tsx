@@ -1,4 +1,4 @@
-import { useCallback, useMemo, CSSProperties } from 'react';
+import { useCallback, useMemo, CSSProperties, useRef, useEffect } from 'react';
 import SimpleEditor from 'react-simple-code-editor';
 import { createLowlight, common } from 'lowlight';
 import './EditorPanel.css';
@@ -92,26 +92,51 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ content, onChange, zoom, file
   }, [language]);
 
   const fontSize = `${10 * (zoom / 100)}px`;
+  const lineCount = content.split('\n').length;
+  const lineNumberDigits = Math.ceil(Math.log10(lineCount || 1));
+  const lineNumberWidth = `${Math.max(32, lineNumberDigits * 7 + 16)}px`;
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
+
+  // Sync scroll between line numbers and editor
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const handleScroll = () => {
+      if (lineNumbersRef.current) {
+        lineNumbersRef.current.scrollTop = wrapper.scrollTop;
+      }
+    };
+    wrapper.addEventListener('scroll', handleScroll);
+    return () => wrapper.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="editor-panel" style={style}>
       <div className="editor-header">
         <span>Editor</span>
       </div>
-      <div className="editor-code-wrap">
-        <SimpleEditor
-          value={content}
-          onValueChange={onChange}
-          highlight={highlight}
-          tabSize={4}
-          insertSpaces
-          style={{
-            fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace",
-            fontSize,
-            lineHeight: '1.6',
-            minHeight: '100%',
-          }}
-        />
+      <div className="editor-code-wrap" ref={wrapperRef}>
+        <div className="editor-line-numbers" ref={lineNumbersRef} style={{ fontSize, width: lineNumberWidth }}>
+          {Array.from({ length: lineCount }, (_, i) => i + 1).map(lineNum => (
+            <div key={lineNum} className="editor-line-number">{lineNum}</div>
+          ))}
+        </div>
+        <div className="editor-code-container">
+          <SimpleEditor
+            value={content}
+            onValueChange={onChange}
+            highlight={highlight}
+            tabSize={4}
+            insertSpaces
+            style={{
+              fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace",
+              fontSize,
+              lineHeight: '1.6',
+              minHeight: '100%',
+            }}
+          />
+        </div>
       </div>
     </div>
   );
