@@ -232,11 +232,19 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ visible, onClose }) => {
               <p><strong>Overview:</strong> Live preview of your markdown on the right panel.</p>
               <p><strong>Features:</strong></p>
               <ul>
-                <li><strong>Image Zoom:</strong> Adjust image size with zoom buttons (50%-1600%)</li>
                 <li><strong>Export HTML:</strong> Download rendered content as HTML file</li>
                 <li><strong>View Modes:</strong> Toggle between Markdown, HTML, JSON, and XML views</li>
                 <li><strong>Scroll Sync:</strong> Synchronized scrolling between editor and preview</li>
-                <li><strong>Image Context Menu:</strong> Right-click images for quick zoom actions</li>
+              </ul>
+              <p><strong>Mermaid Diagram Controls:</strong></p>
+              <ul>
+                <li><strong>Hover over diagram:</strong> Cursor changes to indicate available actions</li>
+                <li><strong>Click to zoom in:</strong> Cycle through zoom levels (100% → 200% → 400% → 800% → 100%)</li>
+                <li><strong>Press 'Z':</strong> Switch to Zoom mode (cursor shows +)</li>
+                <li><strong>Press 'V':</strong> Switch to Move/Pan mode (cursor shows hand icon)</li>
+                <li><strong>Hold Space or Backspace:</strong> Temporary Zoom-Out mode (cursor shows -), then click to zoom backward</li>
+                <li><strong>Drag in Move mode:</strong> Pan around large diagrams</li>
+                <li><strong>Zoom Badge:</strong> Shows current zoom percentage for 1.5 seconds after clicking</li>
               </ul>
               <p><strong>Supported Markdown Features:</strong></p>
               <ul>
@@ -245,7 +253,7 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ visible, onClose }) => {
                 <li>Code blocks with syntax highlighting</li>
                 <li>Tables with GitHub Flavored Markdown</li>
                 <li>Math expressions with KaTeX</li>
-                <li>Mermaid diagrams</li>
+                <li>Mermaid diagrams (interactive zoom & pan)</li>
                 <li>Links and images</li>
               </ul>
             </div>
@@ -360,7 +368,9 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ visible, onClose }) => {
               <li><strong>Edit Indicator:</strong> Red "E" badge shows which files have unsaved changes</li>
               <li><strong>Find & Replace:</strong> Press <code>Ctrl+F</code> to open the find panel</li>
               <li><strong>Jump to Line:</strong> Press <code>Ctrl+G</code> to go to a specific line</li>
-              <li><strong>Image Zoom:</strong> Use zoom controls in preview header (50% - 1600%)</li>
+              <li><strong>Mermaid Zoom:</strong> Click diagram to zoom (100% → 200% → 400% → 800%)</li>
+              <li><strong>Mermaid Zoom Out:</strong> Hold Space or Backspace then click to zoom backward</li>
+              <li><strong>Mermaid Pan:</strong> Press 'V' to enter move mode, then drag to pan around diagram</li>
               <li><strong>Resize Panels:</strong> Drag the divider between editor and preview to resize</li>
               <li><strong>Export:</strong> Click "Export HTML" button in preview header to download as HTML</li>
               <li><strong>Scroll Sync:</strong> Keep editor and preview scrolled together</li>

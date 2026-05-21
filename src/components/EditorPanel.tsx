@@ -117,6 +117,8 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
   const effectiveContainerRef = externalContainerRef || localContainerRef;
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const isSyncingRef = useRef(false);
+  const userScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const rafRef = useRef<number | null>(null);
   const previousFilenameRef = useRef(filename);
   const lastScrollEmitTimeRef = useRef(0); // Throttle scroll emissions
@@ -127,6 +129,13 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
     if (!container) return;
     
     const handleScroll = () => {
+      // Mark user is scrolling
+      userScrollingRef.current = true;
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        userScrollingRef.current = false;
+      }, 300);
+      
       if (lineNumbersRef.current) {
         lineNumbersRef.current.scrollTop = container.scrollTop;
       }
@@ -148,13 +157,14 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
     return () => {
       container.removeEventListener('scroll', handleScroll);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, [onScroll, effectiveContainerRef]);
 
-  // Apply scroll from parent sync
+  // Apply scroll from parent sync - but skip if user is actively scrolling
   useEffect(() => {
     const container = effectiveContainerRef.current;
-    if (!container || syncScrollRatio === undefined || syncScrollRatio === null) return;
+    if (!container || syncScrollRatio === undefined || syncScrollRatio === null || userScrollingRef.current) return;
     
     const maxScroll = container.scrollHeight - container.clientHeight;
     if (maxScroll <= 0) return; // No scrollbar needed

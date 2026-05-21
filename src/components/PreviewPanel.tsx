@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, CSSProperties } from 'react';
-import { Download, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -183,13 +183,12 @@ interface PreviewPanelProps {
   content: string;
   filename?: string; // Track when file changes
   style?: CSSProperties;
-  imageZoom?: number;
   onImageContextMenu?: (e: React.MouseEvent) => void;
-  onImageZoomChange?: (direction: 'in' | 'out' | 'reset') => void;
   previewMode?: 'markdown' | 'html' | 'json' | 'xml';
   onScroll?: (ratio: number) => void;
   syncScrollRatio?: number;
   onDownloadHtml?: () => void;
+  onDiagramScroll?: () => void;
 }
 
 let mermaidInitialized = false;
@@ -206,23 +205,35 @@ const initializeMermaid = () => {
   }
 };
 
-const MermaidBlock = ({ node, className, children, imageZoom = 100, onContextMenu, onImageZoomChange, ...props }: any) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const id = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`);
+const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScroll, ...props }: any) => {
+  const containerRef = useRef<HTMLDivElement>(null);  // For manual DOM manipulation
+  const wrapperRef = useRef<HTMLDivElement>(null);     // For React events
+  const [scaledDimensions, setScaledDimensions] = useState<{ width: number; height: number } | undefined>(undefined);
+  const [localZoom, setLocalZoom] = useState(100);
+  const [badgePos, setBadgePos] = useState<{ x: number; y: number } | null>(null);
+  const [badgeVisible, setBadgeVisible] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);  // Track if user is dragging/moving
+  const [mode, setMode] = useState<'zoom' | 'move'>('zoom'); // Track interaction mode
+  const [isHovering, setIsHovering] = useState(false); // Track hover state
+  const [isZoomOutMode, setIsZoomOutMode] = useState(false); // Track zoom out mode (Space/Backspace)
+  const badgeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const touchPointsRef = useRef<number>(0);  // Track active touch points
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null); // Track drag start position
+  const scrollStartRef = useRef<{ scrollLeft: number; scrollTop: number } | null>(null); // Track initial scroll position
 
   useEffect(() => {
     // Only process mermaid code blocks
-    if (!className?.includes('language-mermaid') || !ref.current) {
+    if (!className?.includes('language-mermaid') || !containerRef.current) {
       return;
     }
+
+    // Capture ref value for cleanup function
+    const container = containerRef.current;
+    let isMounted = true;
 
     const renderMermaid = async () => {
       try {
         initializeMermaid();
-
-        // Clean up any orphan element from a previous render with the same ID
-        const orphan = document.getElementById(id.current);
-        if (orphan) orphan.parentNode?.removeChild(orphan);
         
         let code = '';
         
@@ -240,25 +251,121 @@ const MermaidBlock = ({ node, className, children, imageZoom = 100, onContextMen
         if (!code) {
           throw new Error('Empty Mermaid diagram code');
         }
+
+        // Reset zoom when diagram changes
+        if (isMounted) {
+          setLocalZoom(100);
+        }
+
+        // Use a unique ID for each render to avoid conflicts
+        const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        const { svg } = await mermaid.render(id.current, code);
-        if (ref.current) {
-          ref.current.innerHTML = svg;
-          ref.current.classList.add('mermaid-success');
-          ref.current.classList.remove('mermaid-error');
+        // Render mermaid diagram and get SVG string
+        const { svg } = await mermaid.render(uniqueId, code);
+        
+        if (isMounted && containerRef.current) {
+          // Completely remove old content
+          while (containerRef.current.firstChild) {
+            containerRef.current.removeChild(containerRef.current.firstChild);
+          }
+          
+          // Insert SVG as HTML - this container is NOT managed by React
+          containerRef.current.innerHTML = svg;
+          
+          if (wrapperRef.current) {
+            wrapperRef.current.classList.add('mermaid-success');
+            wrapperRef.current.classList.remove('mermaid-error');
+          }
+          
+          // Measure the rendered SVG to calculate scaled dimensions
+          setTimeout(() => {
+            if (isMounted && containerRef.current) {
+              const svg = containerRef.current.querySelector('svg');
+              if (svg) {
+                const bbox = svg.getBBox?.() || { width: svg.clientWidth, height: svg.clientHeight };
+                const naturalWidth = bbox.width || svg.clientWidth || 400;
+                const naturalHeight = bbox.height || svg.clientHeight || 200;
+                setScaledDimensions({ width: naturalWidth, height: naturalHeight });
+              }
+            }
+          }, 0);
         }
       } catch (err: any) {
         console.error('Mermaid render error:', err);
-        if (ref.current) {
-          ref.current.innerHTML = `<div class="mermaid-error-msg">Diagram Error: ${err.message}</div>`;
-          ref.current.classList.add('mermaid-error');
-          ref.current.classList.remove('mermaid-success');
+        if (isMounted && containerRef.current) {
+          containerRef.current.innerHTML = `<div class="mermaid-error-msg">Diagram Error: ${err.message}</div>`;
+          if (wrapperRef.current) {
+            wrapperRef.current.classList.add('mermaid-error');
+            wrapperRef.current.classList.remove('mermaid-success');
+          }
         }
       }
     };
     
     renderMermaid();
+
+    // Cleanup function - remove all children when unmounting
+    return () => {
+      isMounted = false;
+      // Use captured container value instead of ref
+      if (container) {
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+      }
+    };
   }, [children, className, node]);
+
+  // Keyboard event handler to switch between zoom and move modes
+  useEffect(() => {
+    if (!isHovering) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (key === 'z') {
+        setMode('zoom');
+        setIsZoomOutMode(false);
+        console.log('Switched to ZOOM mode');
+      } else if (key === 'v') {
+        setMode('move');
+        setIsZoomOutMode(false);
+        console.log('Switched to MOVE mode');
+      } else if (key === ' ' || key === 'backspace') {
+        e.preventDefault();
+        setIsZoomOutMode(true);
+        console.log('ZOOM OUT mode activated');
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (key === ' ' || key === 'backspace') {
+        e.preventDefault();
+        setIsZoomOutMode(false);
+        console.log('ZOOM OUT mode deactivated');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isHovering]);
+
+  // Scale the SVG element when zoom changes
+  useEffect(() => {
+    if (containerRef.current) {
+      const svg = containerRef.current.querySelector('svg');
+      if (svg) {
+        const scaleRatio = localZoom / 100;
+        svg.style.transform = `scale(${scaleRatio})`;
+        svg.style.transformOrigin = 'top left';
+        svg.style.transition = 'transform 0.2s ease';
+      }
+    }
+  }, [localZoom]);
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     console.log('Mermaid context menu clicked!', e);
@@ -267,34 +374,184 @@ const MermaidBlock = ({ node, className, children, imageZoom = 100, onContextMen
     }
   };
 
-  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    console.log('Mermaid double-clicked, current zoom:', imageZoom);
-    if (onImageZoomChange) {
-      if (imageZoom > 100) {
-        onImageZoomChange('reset');
-      } else {
-        onImageZoomChange('in');
+  // Track multi-touch events to prevent zoom during pan/scroll
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchPointsRef.current = e.touches.length;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchPointsRef.current = e.touches.length;
+    setIsMoving(false);
+  };
+
+  // Mouse enter - start hovering
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+  };
+
+  // Mouse leave - reset hover and stop moving
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setIsMoving(false);
+    dragStartRef.current = null;
+  };
+
+  // Handle mouse down - start drag if in move mode
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (mode === 'move') {
+      setIsMoving(true);
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
+      if (wrapperRef.current) {
+        scrollStartRef.current = {
+          scrollLeft: wrapperRef.current.scrollLeft,
+          scrollTop: wrapperRef.current.scrollTop,
+        };
       }
     }
   };
 
+  // Handle mouse move - drag diagram if in move mode
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMoving && dragStartRef.current && scrollStartRef.current && mode === 'move') {
+      const deltaX = e.clientX - dragStartRef.current.x;
+      const deltaY = e.clientY - dragStartRef.current.y;
+
+      if (wrapperRef.current) {
+        wrapperRef.current.scrollLeft = scrollStartRef.current.scrollLeft - deltaX;
+        wrapperRef.current.scrollTop = scrollStartRef.current.scrollTop - deltaY;
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsMoving(false);
+    dragStartRef.current = null;
+    scrollStartRef.current = null;
+  };
+
+  // Cycle through zoom levels: 100 -> 200 -> 400 -> 800 -> 100
+  const zoomLevels = [100, 200, 400, 800];
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only allow zoom if in zoom mode (not move mode)
+    if (mode === 'move') return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Don't zoom if multi-touch is active
+    if (touchPointsRef.current > 1) {
+      return;
+    }
+    
+    // Show badge near cursor
+    const offsetX = 15;
+    const offsetY = 15;
+    setBadgePos({ x: e.clientX + offsetX, y: e.clientY + offsetY });
+    setBadgeVisible(true);
+    
+    // Clear existing timeout
+    if (badgeTimeoutRef.current) {
+      clearTimeout(badgeTimeoutRef.current);
+    }
+    
+    // Hide badge after 1.5 seconds
+    badgeTimeoutRef.current = setTimeout(() => {
+      setBadgeVisible(false);
+    }, 1500);
+    
+    const currentIndex = zoomLevels.indexOf(localZoom);
+    
+    // If zoom out mode (Space/Backspace), go to previous level; otherwise go to next level
+    let nextIndex;
+    if (isZoomOutMode) {
+      nextIndex = (currentIndex - 1 + zoomLevels.length) % zoomLevels.length;
+      console.log('Mermaid zoomed OUT to:', zoomLevels[nextIndex] + '%');
+    } else {
+      nextIndex = (currentIndex + 1) % zoomLevels.length;
+      console.log('Mermaid zoomed IN to:', zoomLevels[nextIndex] + '%');
+    }
+    
+    setLocalZoom(zoomLevels[nextIndex]);
+  };
+
   if (className?.includes('language-mermaid')) {
+    // Calculate container size to accommodate scaled content
+    const containerWidth = scaledDimensions ? scaledDimensions.width * (localZoom / 100) : undefined;
+    const containerHeight = scaledDimensions ? scaledDimensions.height * (localZoom / 100) : undefined;
+    
+    // Determine cursor based on mode and hover state
+    let cursorStyle = 'default';
+    if (isHovering) {
+      if (isZoomOutMode) {
+        cursorStyle = 'zoom-out'; // Shows magnifying glass with -
+      } else if (mode === 'zoom') {
+        cursorStyle = 'zoom-in'; // Shows magnifying glass with +
+      } else if (mode === 'move') {
+        cursorStyle = isMoving ? 'grabbing' : 'grab'; // Shows hand
+      }
+    }
+    
     return (
       <div
-        ref={ref}
+        ref={wrapperRef}
         className="mermaid-diagram"
+        onClick={handleClick}
         onContextMenu={handleContextMenu}
-        onDoubleClick={handleDoubleClick}
+        onScroll={onDiagramScroll}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         style={{
           minHeight: '200px',
-          transform: `scale(${imageZoom / 100})`,
-          transformOrigin: 'top left',
-          transition: 'transform 0.2s ease',
-          cursor: 'zoom-in',
+          minWidth: '100%',
+          width: containerWidth ? `${containerWidth}px` : undefined,
+          height: containerHeight ? `${containerHeight}px` : undefined,
+          transition: 'width 0.2s ease, height 0.2s ease',
+          cursor: cursorStyle,
           userSelect: 'none',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          overflow: 'auto',
+          position: 'relative',
         }}
-      />
+      >
+        {/* Inner container for manual DOM manipulation - NOT managed by React */}
+        <div
+          ref={containerRef}
+          style={{
+            width: '100%',
+          }}
+        />
+        
+        {/* Floating zoom badge near cursor */}
+        {badgeVisible && badgePos && (
+          <div
+            style={{
+              position: 'fixed',
+              left: `${badgePos.x}px`,
+              top: `${badgePos.y}px`,
+              backgroundColor: '#667eea',
+              color: '#fff',
+              padding: '8px 14px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              zIndex: 10000,
+              pointerEvents: 'none',
+              userSelect: 'none',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+              animation: 'fadeInOut 1.5s ease-in-out',
+            }}
+          >
+            {localZoom}%
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -306,7 +563,7 @@ const MermaidBlock = ({ node, className, children, imageZoom = 100, onContextMen
   );
 };
 
-const ImageWithZoom = ({ src, alt, onContextMenu, imageZoom, onImageZoomChange }: any) => {
+const SimpleImage = ({ src, alt, onContextMenu }: any) => {
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
@@ -326,32 +583,17 @@ const ImageWithZoom = ({ src, alt, onContextMenu, imageZoom, onImageZoomChange }
         }
       };
 
-      const handleDoubleClick = (e: MouseEvent) => {
-        e.preventDefault();
-        console.log('Image double-clicked, current zoom:', imageZoom);
-        if (onImageZoomChange) {
-          // If already zoomed, reset to 100%, otherwise zoom in by 20%
-          if (imageZoom > 100) {
-            onImageZoomChange('reset');
-          } else {
-            onImageZoomChange('in');
-          }
-        }
-      };
-
       const element = imgRef.current;
       if (element) {
         element.addEventListener('contextmenu', handleContextMenu);
-        element.addEventListener('dblclick', handleDoubleClick);
       }
       return () => {
         if (element) {
           element.removeEventListener('contextmenu', handleContextMenu);
-          element.removeEventListener('dblclick', handleDoubleClick);
         }
       };
     }
-  }, [onContextMenu, imageZoom, onImageZoomChange]);
+  }, [onContextMenu]);
 
   return (
     <img
@@ -361,11 +603,7 @@ const ImageWithZoom = ({ src, alt, onContextMenu, imageZoom, onImageZoomChange }
       style={{
         maxWidth: '100%',
         height: 'auto',
-        cursor: 'zoom-in',
         userSelect: 'none',
-        transform: `scale(${imageZoom / 100})`,
-        transformOrigin: 'top left',
-        transition: 'transform 0.2s ease',
         display: 'block',
         margin: '10px 0',
       }}
@@ -373,7 +611,7 @@ const ImageWithZoom = ({ src, alt, onContextMenu, imageZoom, onImageZoomChange }
   );
 };
 
-const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', style, imageZoom = 100, onImageContextMenu, onImageZoomChange, previewMode = 'markdown', onScroll, syncScrollRatio = 0, onDownloadHtml }) => {
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', style, onImageContextMenu, previewMode = 'markdown', onScroll, syncScrollRatio = 0, onDownloadHtml, onDiagramScroll }) => {
   const previewContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -423,6 +661,8 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', sty
   }, [onImageContextMenu]);
 
   const isSyncingRef = useRef(false);
+  const userScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const rafRef = useRef<number | null>(null);
   const previousFilenameRef = useRef(filename);
   const lastScrollEmitTimeRef = useRef(0); // Throttle scroll emissions
@@ -432,6 +672,13 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', sty
     const element = previewContentRef.current;
     if (!element) return;
     const handleScroll = () => {
+      // Mark user is scrolling
+      userScrollingRef.current = true;
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        userScrollingRef.current = false;
+      }, 300);
+      
       // Only emit if NOT syncing from parent AND enough time since last emit
       const now = Date.now();
       if (!isSyncingRef.current && now - lastScrollEmitTimeRef.current > 200 && onScroll) {
@@ -449,13 +696,14 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', sty
     return () => {
       element.removeEventListener('scroll', handleScroll);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, [onScroll]);
 
-  // Apply scroll from parent sync
+  // Apply scroll from parent sync - but skip if user is actively scrolling
   useEffect(() => {
     const element = previewContentRef.current;
-    if (!element || syncScrollRatio === undefined || syncScrollRatio === null) return;
+    if (!element || syncScrollRatio === undefined || syncScrollRatio === null || userScrollingRef.current) return;
     
     const maxScroll = element.scrollHeight - element.clientHeight;
     if (maxScroll <= 0) return; // No scrollbar needed
@@ -509,9 +757,8 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', sty
                 node={node}
                 className={className}
                 children={code}
-                imageZoom={imageZoom}
                 onContextMenu={onImageContextMenu}
-                onImageZoomChange={onImageZoomChange}
+                onDiagramScroll={onDiagramScroll}
               />
             );
           }
@@ -521,15 +768,13 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', sty
         return <pre {...props}>{props.children}</pre>;
       },
       img: (props: any) => (
-        <ImageWithZoom 
+        <SimpleImage 
           {...props}
-          imageZoom={imageZoom}
           onContextMenu={onImageContextMenu}
-          onImageZoomChange={onImageZoomChange}
         />
       ),
     }),
-    [imageZoom, onImageContextMenu, onImageZoomChange]
+    [onImageContextMenu, onDiagramScroll]
   );
 
   return (
@@ -537,35 +782,6 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', sty
       <div className="preview-header">
         <span>Preview</span>
         <div className="preview-header-controls">
-          {onImageZoomChange && (
-            <div className="preview-zoom-group">
-              <span className="preview-zoom-label">Image:</span>
-              <button 
-                className="preview-zoom-btn"
-                onClick={() => onImageZoomChange('out')}
-                title="Zoom Out Image"
-                disabled={imageZoom <= 50}
-              >
-                <ZoomOut size={14} />
-              </button>
-              <span className="preview-zoom-display">{imageZoom}%</span>
-              <button 
-                className="preview-zoom-btn"
-                onClick={() => onImageZoomChange('in')}
-                title="Zoom In Image"
-                disabled={imageZoom >= 1600}
-              >
-                <ZoomIn size={14} />
-              </button>
-              <button 
-                className="preview-zoom-btn"
-                onClick={() => onImageZoomChange('reset')}
-                title="Reset Image Zoom"
-              >
-                <RotateCcw size={14} />
-              </button>
-            </div>
-          )}
           {onDownloadHtml && (
             <button className="preview-export-btn" onClick={onDownloadHtml} title="Export as HTML">
               <Download size={14} />

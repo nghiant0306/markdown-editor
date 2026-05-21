@@ -6,8 +6,6 @@ interface ContextMenuProps {
   y: number;
   visible: boolean;
   onClose: () => void;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -15,8 +13,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   y,
   visible,
   onClose,
-  onZoomIn,
-  onZoomOut,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -72,20 +68,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         zIndex: 99999,
       }}
     >
-      <button className="context-menu-item" onClick={() => {
-        console.log('Zoom in clicked');
-        onZoomIn();
-        onClose();
-      }}>
-        🔍+ Zoom In (50%-300%)
-      </button>
-      <button className="context-menu-item" onClick={() => {
-        console.log('Zoom out clicked');
-        onZoomOut();
-        onClose();
-      }}>
-        🔍- Zoom Out (50%-300%)
-      </button>
     </div>
   );
 };
