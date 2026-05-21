@@ -1,0 +1,173 @@
+.file-explorer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #f5f5f5;
+  border-right: 1px solid #d0d0d0;
+  overflow: hidden;
+}
+
+.file-explorer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.file-explorer-header h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+}
+
+.file-explorer-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.file-explorer-btn {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.file-explorer-btn:hover {
+  background-color: #e8e8e8;
+  color: #333;
+}
+
+.file-explorer-btn:active {
+  background-color: #d0d0d0;
+}
+
+.file-explorer-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.file-explorer-empty {
+  padding: 12px;
+  text-align: center;
+  color: #999;
+  font-size: 10px;
+}
+
+.file-explorer-empty p {
+  margin: 8px 0;
+}
+
+.file-explorer-hint {
+  font-size: 10px;
+  color: #bbb !important;
+}
+
+.file-list {
+  padding: 4px 0;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.file-item:hover {
+  background-color: #eeeeee;
+}
+
+.file-item.active {
+  background-color: #e3f2fd;
+  border-left-color: #667eea;
+}
+
+.file-item-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.file-icon {
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.file-name {
+  font-size: 11px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-dirty {
+  color: #ff6b6b;
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+.file-close-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.file-item:hover .file-close-btn {
+  opacity: 1;
+  color: #666;
+}
+
+.file-close-btn:hover {
+  background-color: #d0d0d0;
+  color: #333;
+}
+
+.file-close-btn:active {
+  background-color: #c0c0c0;
+}
+
+/* Scrollbar styling */
+.file-explorer-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.file-explorer-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.file-explorer-content::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.file-explorer-content::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}

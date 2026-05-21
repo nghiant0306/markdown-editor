@@ -1,0 +1,104 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  user-select: none;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolbar-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #d0d0d0;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background-color: white;
+  border: 1px solid #d0d0d0;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background-color: #e8e8ff;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.toolbar-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-btn.active {
+  background-color: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.zoom-display {
+  min-width: 38px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+}
+
+.help-btn {
+  background-color: #fff3cd;
+  border-color: #ffc107;
+  color: #856404;
+  margin-left: auto;
+}
+
+.help-btn:hover:not(:disabled) {
+  background-color: #ffe69c;
+  border-color: #ffb300;
+  color: #654321;
+}
+
+.chat-btn {
+  background-color: #e8f4f8;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.chat-btn:hover:not(:disabled) {
+  background-color: #d0e8f6;
+  border-color: #764ba2;
+  color: #764ba2;
+}
+
+.chat-btn.active {
+  background-color: #667eea;
+  color: white;
+  border-color: #667eea;
+}
