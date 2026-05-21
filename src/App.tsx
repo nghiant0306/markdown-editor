@@ -66,7 +66,6 @@ This is a test image. Try right-clicking on it!
 
   const [splitPosition, setSplitPosition] = useState(50); // percentage
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
-  const [imageZoom, setImageZoom] = useState(100); // image zoom level
   const [showHelp, setShowHelp] = useState(false);
   const [openFiles, setOpenFiles] = useState<OpenFile[]>([]);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
@@ -80,6 +79,8 @@ This is a test image. Try right-clicking on it!
   const [replacedMatches, setReplacedMatches] = useState<Array<{ start: number; end: number }>>([]);
   const [goToLineOpen, setGoToLineOpen] = useState(false);
   const scrollSyncSourceRef = useRef<'editor' | 'preview' | null>(null);
+  const scrollingOnDiagramRef = useRef(false);
+  const scrollingOnDiagramTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const isResizing = useRef(false);
@@ -457,29 +458,33 @@ ${htmlContent}
     setContextMenu({ visible: true, x: e.clientX, y: e.clientY });
   }, []);
 
-  const handleImageZoom = useCallback((direction: 'in' | 'out' | 'reset') => {
-    setImageZoom(prev => {
-      let newZoom;
-      if (direction === 'reset') {
-        newZoom = 100;
-      } else if (direction === 'in') {
-        newZoom = Math.min(prev + 50, 1600); // Increased max to 1600
-      } else {
-        newZoom = Math.max(prev - 20, 50);
-      }
-      console.log('Image zoom changed:', prev, '->', newZoom, 'direction:', direction);
-      return newZoom;
-    });
-  }, []);
-
   const handleEditorScroll = useCallback((ratio: number) => {
     scrollSyncSourceRef.current = 'editor';
     setScrollSyncRatio(ratio);
   }, []);
 
   const handlePreviewScroll = useCallback((ratio: number) => {
+    // Skip scroll sync if currently scrolling on a zoomed diagram
+    if (scrollingOnDiagramRef.current) {
+      return;
+    }
     scrollSyncSourceRef.current = 'preview';
     setScrollSyncRatio(ratio);
+  }, []);
+
+  const handleDiagramScroll = useCallback(() => {
+    // Mark that we're scrolling on a diagram
+    scrollingOnDiagramRef.current = true;
+    
+    // Clear existing timeout
+    if (scrollingOnDiagramTimeoutRef.current) {
+      clearTimeout(scrollingOnDiagramTimeoutRef.current);
+    }
+    
+    // Reset flag after 500ms of inactivity
+    scrollingOnDiagramTimeoutRef.current = setTimeout(() => {
+      scrollingOnDiagramRef.current = false;
+    }, 500);
   }, []);
 
   const handleFind = useCallback((findText: string, caseSensitive: boolean) => {
@@ -616,6 +621,8 @@ ${htmlContent}
 
       // Limit to 20-80% to prevent panels from being too small
       if (newPosition >= 20 && newPosition <= 80) {
+        // Temporarily clear scroll sync to prevent auto-scroll during resize
+        setScrollSyncRatio(null);
         setSplitPosition(newPosition);
       }
     };
@@ -733,13 +740,12 @@ ${htmlContent}
             content={previewContent}
             filename={editorState.filename}
             style={{ flex: `0 0 ${100 - splitPosition}%` }}
-            imageZoom={imageZoom}
             onImageContextMenu={handleImageContextMenu}
-            onImageZoomChange={handleImageZoom}
             previewMode={previewMode}
             onScroll={handlePreviewScroll}
             syncScrollRatio={scrollSyncSourceRef.current === 'editor' ? scrollSyncRatio : undefined}
             onDownloadHtml={handleDownloadHtml}
+            onDiagramScroll={handleDiagramScroll}
           />
         </div>
         {(findReplaceOpen || goToLineOpen) && (
@@ -778,8 +784,6 @@ ${htmlContent}
         x={contextMenu.x}
         y={contextMenu.y}
         onClose={() => setContextMenu({ ...contextMenu, visible: false })}
-        onZoomIn={() => handleImageZoom('in')}
-        onZoomOut={() => handleImageZoom('out')}
       />
       <HelpPanel
         visible={showHelp}

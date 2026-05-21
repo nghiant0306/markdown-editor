@@ -148,6 +148,26 @@
 .xv-val   { color: #27ae60; }
 .xv-text  { color: #333; }
 .xv-comment { color: #95a5a6; font-style: italic; margin: 1px 0; }
+
+/* Fade in/out animation for zoom badge */
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
 .xv-error { color: #e74c3c; background: #fdf0ef; padding: 10px; border-radius: 4px; }
 
 .preview-content::-webkit-scrollbar {
@@ -330,16 +350,14 @@ em, i {
 
 /* Mermaid Diagram Styling */
 .mermaid-diagram {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   margin: 20px 0;
   padding: 15px;
   background-color: #f9f9f9;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  overflow-x: auto;
-  overflow-y: auto;
+  position: relative;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .mermaid-diagram.mermaid-success {
@@ -353,10 +371,10 @@ em, i {
 }
 
 .mermaid-diagram svg {
-  max-width: 100%;
-  height: auto;
   display: block;
   margin: 0 auto;
+  max-width: 100%;
+  height: auto;
 }
 
 .mermaid-error-msg {
@@ -366,7 +384,9 @@ em, i {
   border-radius: 4px;
   padding: 12px;
   margin: 10px 0;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'monospace';
+  font-family: 'Mona
+}
+co', 'Menlo', 'Ubuntu Mono', 'Consolas', 'monospace';
   font-size: 0.85em;
   word-break: break-all;
 }
