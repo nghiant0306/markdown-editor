@@ -78,6 +78,8 @@ This is a test image. Try right-clicking on it!
   const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
   const [replacedMatches, setReplacedMatches] = useState<Array<{ start: number; end: number }>>([]);
   const [goToLineOpen, setGoToLineOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+  const [previewMaximized, setPreviewMaximized] = useState(false);
   const scrollSyncSourceRef = useRef<'editor' | 'preview' | null>(null);
   const scrollingOnDiagramRef = useRef(false);
   const scrollingOnDiagramTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -354,6 +356,20 @@ ${htmlContent}
   const handleMouseDownDivider = useCallback(() => {
     isResizing.current = true;
   }, []);
+
+  // Check if file is a source code file (not markdown/html/json/xml)
+  const isCodeFile = useMemo(() => {
+    const ext = editorState.filename.split('.').pop()?.toLowerCase() || '';
+    const previewExtensions = new Set(['md', 'markdown', 'html', 'htm', 'json', 'jsonc', 'json5', 'xml', 'svg', 'xhtml', 'xsl', 'xslt', 'csv', 'tsv', 'txt', 'text', 'log', 'ini', 'cfg', 'conf', 'properties', 'env']);
+    return !previewExtensions.has(ext);
+  }, [editorState.filename]);
+
+  // Auto-hide preview for code files
+  useEffect(() => {
+    if (isCodeFile) {
+      setShowPreview(false);
+    }
+  }, [isCodeFile]);
 
   const previewMode = useMemo((): 'markdown' | 'html' | 'json' | 'xml' => {
     const ext = editorState.filename.split('.').pop()?.toLowerCase() || '';
@@ -697,7 +713,13 @@ ${htmlContent}
         onToggleHelp={handleToggleHelp}
       />
       <div className="editor-container" ref={containerRef}>
-        <div className="file-explorer-panel" style={{ width: explorerWidth }}>
+        <div 
+          className="file-explorer-panel" 
+          style={{ 
+            width: explorerWidth,
+            display: previewMaximized ? 'none' : 'block'
+          }}
+        >
           <FileExplorer
               openFiles={openFiles}
               currentFileId={currentFileId}
@@ -717,36 +739,68 @@ ${htmlContent}
             explorerStartX.current = e.clientX;
             explorerStartWidth.current = explorerWidth;
           }}
+          style={{ display: previewMaximized ? 'none' : 'block' }}
         />
-        <div className="editor-workspace" style={{ flex: 1, display: 'flex' }}>
+        {/* Fullscreen Preview */}
+        {previewMaximized && (
+          <PreviewPanel
+            content={previewContent}
+            filename={editorState.filename}
+            style={{ flex: 1 }}
+            onImageContextMenu={handleImageContextMenu}
+            previewMode={previewMode}
+            onScroll={handlePreviewScroll}
+            syncScrollRatio={undefined}
+            onDownloadHtml={handleDownloadHtml}
+            onDiagramScroll={handleDiagramScroll}
+            previewMaximized={previewMaximized}
+            onToggleMaximize={() => setPreviewMaximized(false)}
+          />
+        )}
+        {/* Normal Split View */}
+        <div 
+          className="editor-workspace" 
+          style={{ 
+            flex: 1, 
+            display: previewMaximized ? 'none' : 'flex'
+          }}
+        >
           <EditorPanel
             content={editorState.content}
             onChange={handleContentChange}
             zoom={editorState.zoom}
             filename={editorState.filename}
-            style={{ flex: `0 0 ${splitPosition}%` }}
+            style={{ flex: `0 0 ${showPreview ? splitPosition : 100}%` }}
             onScroll={handleEditorScroll}
             syncScrollRatio={scrollSyncSourceRef.current === 'preview' ? scrollSyncRatio : undefined}
             matches={findMatches}
             currentMatchIndex={currentMatchIndex}
             replacedMatches={replacedMatches}
             containerRef={editorContainerRef}
+            showPreview={showPreview}
+            onTogglePreview={() => setShowPreview(!showPreview)}
           />
-          <div 
-            className="resize-divider"
-            onMouseDown={handleMouseDownDivider}
-          />
-          <PreviewPanel
-            content={previewContent}
-            filename={editorState.filename}
-            style={{ flex: `0 0 ${100 - splitPosition}%` }}
-            onImageContextMenu={handleImageContextMenu}
-            previewMode={previewMode}
-            onScroll={handlePreviewScroll}
-            syncScrollRatio={scrollSyncSourceRef.current === 'editor' ? scrollSyncRatio : undefined}
-            onDownloadHtml={handleDownloadHtml}
-            onDiagramScroll={handleDiagramScroll}
-          />
+          {showPreview && (
+            <>
+              <div 
+                className="resize-divider"
+                onMouseDown={handleMouseDownDivider}
+              />
+              <PreviewPanel
+                content={previewContent}
+                filename={editorState.filename}
+                style={{ flex: `0 0 ${100 - splitPosition}%` }}
+                onImageContextMenu={handleImageContextMenu}
+                previewMode={previewMode}
+                onScroll={handlePreviewScroll}
+                syncScrollRatio={scrollSyncSourceRef.current === 'editor' ? scrollSyncRatio : undefined}
+                onDownloadHtml={handleDownloadHtml}
+                onDiagramScroll={handleDiagramScroll}
+                previewMaximized={previewMaximized}
+                onToggleMaximize={() => setPreviewMaximized(true)}
+              />
+            </>
+          )}
         </div>
         {(findReplaceOpen || goToLineOpen) && (
           <div className="right-panel-container">

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, CSSProperties, useRef, useEffect, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import SimpleEditor from 'react-simple-code-editor';
 import { createLowlight, common } from 'lowlight';
 import './EditorPanel.css';
@@ -15,6 +16,8 @@ interface EditorPanelProps {
   currentMatchIndex?: number;
   replacedMatches?: Array<{ start: number; end: number }>;
   containerRef?: React.RefObject<HTMLDivElement>;
+  showPreview?: boolean;
+  onTogglePreview?: () => void;
 }
 
 // Shared language map (extension → lowlight language name)
@@ -91,7 +94,9 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
   matches = [],
   currentMatchIndex = 0,
   replacedMatches = [],
-  containerRef: externalContainerRef
+  containerRef: externalContainerRef,
+  showPreview = true,
+  onTogglePreview
 }) => {
   const language = useMemo(() => {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
@@ -374,6 +379,15 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
     <div className="editor-panel" style={style}>
       <div className="editor-header">
         <span>Editor</span>
+        <div className="editor-header-controls">
+          <button
+            className="editor-toggle-preview-btn"
+            onClick={onTogglePreview}
+            title={showPreview ? "Hide Preview" : "Show Preview"}
+          >
+            {showPreview ? <Eye size={16} /> : <EyeOff size={16} />}
+          </button>
+        </div>
       </div>
       <div className="editor-code-wrap">
         <div className="editor-line-numbers" ref={lineNumbersRef} style={{ fontSize, width: lineNumberWidth }}>

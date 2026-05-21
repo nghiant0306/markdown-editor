@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, CSSProperties } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Maximize2, Minimize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -189,6 +189,8 @@ interface PreviewPanelProps {
   syncScrollRatio?: number;
   onDownloadHtml?: () => void;
   onDiagramScroll?: () => void;
+  previewMaximized?: boolean;
+  onToggleMaximize?: () => void;
 }
 
 let mermaidInitialized = false;
@@ -611,7 +613,7 @@ const SimpleImage = ({ src, alt, onContextMenu }: any) => {
   );
 };
 
-const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', style, onImageContextMenu, previewMode = 'markdown', onScroll, syncScrollRatio = 0, onDownloadHtml, onDiagramScroll }) => {
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', style, onImageContextMenu, previewMode = 'markdown', onScroll, syncScrollRatio = 0, onDownloadHtml, onDiagramScroll, previewMaximized = false, onToggleMaximize }) => {
   const previewContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -782,6 +784,15 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', sty
       <div className="preview-header">
         <span>Preview</span>
         <div className="preview-header-controls">
+          {onToggleMaximize && (
+            <button 
+              className="preview-maximize-btn" 
+              onClick={onToggleMaximize} 
+              title={previewMaximized ? "Exit Fullscreen" : "Fullscreen"}
+            >
+              {previewMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            </button>
+          )}
           {onDownloadHtml && (
             <button className="preview-export-btn" onClick={onDownloadHtml} title="Export as HTML">
               <Download size={14} />

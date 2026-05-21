@@ -20,7 +20,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           title="Show Markdown Help"
         >
           <HelpCircle size={18} />
-          <span>Help</span>
         </button>
       </div>
     </div>

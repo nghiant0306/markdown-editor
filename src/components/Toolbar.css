@@ -35,8 +35,11 @@
 .toolbar-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  padding: 4px 8px;
+  padding: 6px;
+  min-width: 32px;
+  min-height: 32px;
   background-color: white;
   border: 1px solid #d0d0d0;
   color: #333;
