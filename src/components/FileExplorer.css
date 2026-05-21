@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100%;
   background-color: #f5f5f5;
-  border-right: 1px solid #d0d0d0;
+  border-right: 1px solid #e0e0e0;
   overflow: hidden;
 }
 
@@ -11,9 +11,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px;
+  padding: 6px 12px;
   border-bottom: 1px solid #e0e0e0;
-  background-color: #ffffff;
+  background-color: #f9f9f9;
+  height: 32px;
   flex-shrink: 0;
 }
 
@@ -27,6 +28,41 @@
 .file-explorer-actions {
   display: flex;
   gap: 6px;
+  align-items: center;
+}
+
+.fe-encoding-inline {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.fe-encoding-label {
+  font-size: 10px;
+  color: #666;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.fe-encoding-select {
+  font-size: 10px;
+  padding: 3px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.fe-encoding-select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.fe-encoding-bar {
+  display: none;
 }
 
 .file-explorer-btn {
@@ -155,59 +191,26 @@
 }
 
 /* ── Tabs ── */
-.fe-encoding-bar {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  background: #eef0f5;
-  border-bottom: 1px solid #d0d0d0;
-  flex-shrink: 0;
-}
-
-.fe-encoding-label {
-  font-size: 10px;
-  color: #666;
-  white-space: nowrap;
-}
-
-.fe-encoding-select {
-  font-size: 10px;
-  padding: 2px 4px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  background: #fff;
-  color: #333;
-  cursor: pointer;
-  flex: 1;
-  min-width: 0;
-}
-
-.fe-encoding-select:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
 .fe-tabs {
   display: flex;
   gap: 2px;
-  flex: 1;
+  margin-right: 16px;
 }
 
 .fe-tab {
   background: none;
   border: none;
-  padding: 3px 8px;
-  font-size: 10px;
-  font-weight: 500;
-  color: #888;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 0;
   transition: all 0.15s;
 }
 
-.fe-tab:hover { color: #444; background: #eee; }
-.fe-tab.active { color: #667eea; font-weight: 700; background: #eef0ff; }
+.fe-tab:hover { color: #333; background: none; }
+.fe-tab.active { color: #666; font-weight: 600; background: none; }
 
 /* ── Open Folder button (inside empty state) ── */
 .open-folder-btn {

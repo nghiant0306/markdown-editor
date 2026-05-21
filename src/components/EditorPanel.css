@@ -2,25 +2,28 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  background-color: #f4f4f4;
+  background-color: white;
   border-right: 1px solid #e0e0e0;
   overflow: hidden;
 }
 
 .editor-header {
+  display: flex;
+  align-items: center;
   padding: 6px 12px;
-  background-color: #ebebeb;
-  border-bottom: 1px solid #ddd;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #e0e0e0;
   font-weight: 600;
   color: #666;
   font-size: 11px;
+  height: 32px;
   flex-shrink: 0;
 }
 
 .editor-code-wrap {
   flex: 1;
   overflow: hidden;
-  background-color: #f4f4f4;
+  background-color: white;
   color: #333;
   display: flex;
   flex-direction: row;
@@ -29,24 +32,26 @@
 .editor-line-numbers {
   display: flex;
   flex-direction: column;
-  background-color: #f8f8f8;
-  border-right: 1px solid #ddd;
+  background-color: #f5f5f5;
+  border-right: 1px solid #e0e0e0;
   padding: 0;
   user-select: none;
   flex-shrink: 0;
   text-align: right;
   color: #999;
-  line-height: 1.6;
+  line-height: 1.5;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
   overflow: hidden;
 }
 
 .editor-line-number {
-  padding: 0 8px;
-  height: 1.6em;
+  padding: 0 10px;
+  height: 1.5em;
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  font-size: 10px;
+  color: #999;
 }
 
 .editor-code-container {
@@ -54,7 +59,7 @@
   overflow: auto;
   position: relative;
   color: #333;
-  background-color: #f4f4f4;
+  background-color: white;
 }
 
 /* react-simple-code-editor container */
@@ -66,13 +71,14 @@
 /* Textarea overlay (transparent, for editing) */
 .editor-code-container textarea {
   outline: none !important;
-  caret-color: #333;
+  caret-color: #667eea;
   color: #333 !important;
   text-shadow: 0 0 0 #333 !important;
   background: transparent !important;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace !important;
-  font-size: inherit !important;
+  font-size: 10px !important;
   font-weight: 400 !important;
+  line-height: 1.5 !important;
   opacity: 1 !important;
   -webkit-text-fill-color: #333 !important;
 }
@@ -82,6 +88,8 @@
   background: transparent !important;
   margin: 0 !important;
   color: #333 !important;
+  line-height: 1.5 !important;
+  font-size: 10px !important;
 }
 
 .editor-code-container pre code {

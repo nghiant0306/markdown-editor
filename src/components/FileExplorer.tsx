@@ -282,6 +282,22 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           <button className="fe-tab active">Explorer</button>
         </div>
         <div className="file-explorer-actions">
+          <div className="fe-encoding-inline">
+            <label className="fe-encoding-label">Encode</label>
+            <select
+              className="fe-encoding-select"
+              value={encoding}
+              onChange={e => onEncodingChange(e.target.value)}
+            >
+              <option value="UTF-8">UTF-8</option>
+              <option value="Shift_JIS">Shift-JIS</option>
+              <option value="EUC-JP">EUC-JP</option>
+              <option value="ISO-2022-JP">ISO-2022-JP</option>
+              <option value="windows-1252">Windows-1252</option>
+              <option value="ISO-8859-1">ISO-8859-1</option>
+              <option value="UTF-16">UTF-16</option>
+            </select>
+          </div>
           <button 
             className="file-explorer-btn" 
             title="New File" 
@@ -298,22 +314,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           </button>
           <button className="file-explorer-btn" title="Open Folder" onClick={handleOpenFolder}><FolderPlus size={14} /></button>
         </div>
-      </div>
-      <div className="fe-encoding-bar">
-        <label className="fe-encoding-label">Encoding:</label>
-        <select
-          className="fe-encoding-select"
-          value={encoding}
-          onChange={e => onEncodingChange(e.target.value)}
-        >
-          <option value="UTF-8">UTF-8</option>
-          <option value="Shift_JIS">Shift-JIS</option>
-          <option value="EUC-JP">EUC-JP</option>
-          <option value="ISO-2022-JP">ISO-2022-JP</option>
-          <option value="windows-1252">Windows-1252</option>
-          <option value="ISO-8859-1">ISO-8859-1</option>
-          <option value="UTF-16">UTF-16</option>
-        </select>
       </div>
 
       <div className="file-explorer-content">
