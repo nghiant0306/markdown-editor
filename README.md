@@ -1,6 +1,28 @@
 # Markdown Editor - Typora Clone
 
-A modern, feature-rich Markdown editor built with React and TypeScript. This application provides a Typora-like experience with live preview, syntax highlighting, and intuitive controls.
+A modern, feature-rich Markdown editor built with React and TypeScript with **integrated AI assistant** powered by local Qwen2.5-Coder model.
+
+---
+
+## 🚀 **Quick Start (Recommended)**
+
+**For everyone (easiest way):**
+```powershell
+.\start-all.ps1
+```
+
+This automatically:
+- ✅ Verifies Ollama (native) is running
+- ✅ Downloads AI models (nếu chưa)
+- ✅ Starts Backend server
+- ✅ Starts Frontend
+- ✅ Opens browser
+
+**Takes 5-10 min first time (model download), 10 sec after.**
+
+See [QUICKSTART.md](QUICKSTART.md) for details.
+
+---
 
 ## Features
 
@@ -10,12 +32,14 @@ A modern, feature-rich Markdown editor built with React and TypeScript. This app
 - **Syntax Highlighting**: Beautiful code highlighting with highlight.js
 - **Math Support**: LaTeX/KaTeX support for mathematical expressions
 - **GitHub Flavored Markdown**: Full GFM support including tables, strikethrough, and more
+- **🤖 AI Assistant**: Local Qwen2.5-Coder with semantic search
 
 📋 **File Operations:**
 - Create new markdown files
 - Open and edit existing markdown files
 - Save files to your local system
 - Auto-save dirty state tracking
+- **Git integration**: Auto-commit AI changes
 
 🎨 **UI/UX:**
 - Split-view editor and preview panes
@@ -23,6 +47,7 @@ A modern, feature-rich Markdown editor built with React and TypeScript. This app
 - Status bar showing current file and zoom level
 - Menu bar with quick access to common operations
 - Responsive design
+- **Chat Panel** with AI
 
 ## Installation
 

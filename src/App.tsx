@@ -10,6 +10,8 @@ import FileExplorer from './components/FileExplorer';
 import HelpPanel from './components/HelpPanel';
 import { FindReplacePanel } from './components/FindReplacePanel';
 import { GoToLinePanel } from './components/GoToLinePanel';
+import ChatPanel from './components/ChatPanel';
+import SettingsModal from './components/SettingsModal';
 
 interface EditorState {
   content: string;
@@ -80,6 +82,7 @@ This is a test image. Try right-clicking on it!
   const [goToLineOpen, setGoToLineOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [previewMaximized, setPreviewMaximized] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const scrollSyncSourceRef = useRef<'editor' | 'preview' | null>(null);
   const scrollingOnDiagramRef = useRef(false);
   const scrollingOnDiagramTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -802,6 +805,16 @@ ${htmlContent}
             </>
           )}
         </div>
+        {/* Chat Panel Sidebar */}
+        {!previewMaximized && (
+          <div className="chat-panel-sidebar" style={{ width: 320 }}>
+            <ChatPanel
+              selectedFile={editorState.filename}
+              fileContent={editorState.content}
+              onOpenSettings={() => setShowSettingsModal(true)}
+            />
+          </div>
+        )}
         {(findReplaceOpen || goToLineOpen) && (
           <div className="right-panel-container">
             {findReplaceOpen && (
@@ -842,6 +855,10 @@ ${htmlContent}
       <HelpPanel
         visible={showHelp}
         onClose={handleToggleHelp}
+      />
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
       />
     </div>
   );

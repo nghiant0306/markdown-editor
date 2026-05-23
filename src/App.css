@@ -40,6 +40,17 @@
   box-shadow: 0 0 8px rgba(118, 75, 162, 0.6);
 }
 
+/* Chat Panel Sidebar */
+.chat-panel-sidebar {
+  background-color: white;
+  border-left: 1px solid #d0d0d0;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.1);
+}
+
 /* Chat Panel Container */
 .chat-panel-container {
   width: 320px;
