@@ -149,7 +149,7 @@ Start-Sleep -Seconds 3
 
 # 4. Start Frontend
 Write-Host "[4/5] Starting Frontend..." -ForegroundColor Yellow
-$frontendDir = $PSScriptRoot
+$frontendDir = Join-Path $PSScriptRoot "frontend"
 Set-Location $frontendDir
 
 # Install deps if needed

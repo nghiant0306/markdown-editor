@@ -1,0 +1,236 @@
+.find-replace-panel {
+  flex: 1;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.find-replace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fafafa;
+  flex-shrink: 0;
+}
+
+.find-replace-header h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+}
+
+.find-replace-close {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 2px 6px;
+  line-height: 1;
+  transition: all 0.2s;
+  height: 24px;
+  min-width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.find-replace-close:hover {
+  color: #c62828;
+  background: #ffcdd2;
+  border-radius: 3px;
+}
+
+.find-replace-content {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.find-replace-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.find-replace-button-group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.find-replace-nav-btn {
+  flex: 1;
+  min-width: 60px;
+  padding: 6px 8px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  background: white !important;
+  border: 1px solid #ccc !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.find-replace-nav-btn:hover {
+  background: #f0f0f0 !important;
+  border-color: #999 !important;
+}
+
+.find-replace-nav-btn:active {
+  background: #e0e0e0 !important;
+}
+
+.find-replace-close-btn {
+  flex: 1;
+  min-width: 60px;
+  padding: 6px 8px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  background: #fbe4e6 !important;
+  color: #c62828 !important;
+  border: 1px solid #ef5350 !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.find-replace-close-btn:hover {
+  background: #ffcdd2 !important;
+  border-color: #c62828 !important;
+}
+
+.find-replace-close-btn:active {
+  background: #ef5350 !important;
+  color: white !important;
+}
+
+.find-replace-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+}
+
+.find-replace-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.find-replace-input {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid #bbb;
+  border-radius: 2px;
+  font-size: 11px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  background: white;
+  color: #333;
+}
+
+.find-replace-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.3);
+}
+
+.find-replace-count {
+  position: absolute;
+  right: 6px;
+  font-size: 9px;
+  color: #888;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.find-replace-btn {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+  height: 28px;
+  min-width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.find-replace-btn:hover {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.find-replace-btn:active {
+  background: #e8e8e8;
+}
+
+.find-replace-replace-btn {
+  background: #fff;
+  border-color: #bbb;
+  min-width: 50px;
+}
+
+.find-replace-replace-btn:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+.find-replace-replace-all-btn {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+  min-width: 70px;
+}
+
+.find-replace-replace-all-btn:hover {
+  background: #5568d3;
+  border-color: #5568d3;
+}
+
+.find-replace-replace-all-btn:active {
+  background: #445bb8;
+}
+
+.find-replace-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.find-replace-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #555;
+  user-select: none;
+}
+
+.find-replace-checkbox input {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+.find-replace-checkbox:hover {
+  color: #333;
+}
