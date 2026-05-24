@@ -810,7 +810,6 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ content, filename = '', sty
           {onDownloadHtml && (
             <button className="preview-export-btn" onClick={onDownloadHtml} title="Export as HTML">
               <Download size={14} />
-              <span>Export HTML</span>
             </button>
           )}
         </div>

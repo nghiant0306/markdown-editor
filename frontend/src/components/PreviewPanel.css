@@ -22,21 +22,24 @@
 .preview-export-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background-color: #667eea;
-  color: white;
-  border: none;
+  justify-content: center;
+  padding: 4px 6px;
+  background-color: transparent;
+  border: 1px solid #d0d0d0;
+  color: #666;
   border-radius: 3px;
-  font-size: 11px;
-  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
-  white-space: nowrap;
+  transition: all 0.2s;
 }
 
 .preview-export-btn:hover {
-  background-color: #5568d3;
+  background-color: #e8e8ff;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.preview-export-btn:active {
+  transform: scale(0.95);
 }
 
 .preview-export-btn svg {
