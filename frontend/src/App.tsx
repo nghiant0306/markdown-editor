@@ -775,7 +775,7 @@ ${htmlContent}
           className="editor-workspace" 
           style={{ 
             flex: 1, 
-            display: (previewMaximized || !showEditor) ? 'none' : 'flex'
+            display: (previewMaximized || !showPreview) ? 'none' : 'flex'
           }}
         >
           {showEditor && (
@@ -817,6 +817,21 @@ ${htmlContent}
                 </>
               )}
             </>
+          )}
+          {!showEditor && showPreview && (
+            <PreviewPanel
+              content={previewContent}
+              filename={editorState.filename}
+              style={{ flex: 1 }}
+              onImageContextMenu={handleImageContextMenu}
+              previewMode={previewMode}
+              onScroll={handlePreviewScroll}
+              syncScrollRatio={undefined}
+              onDownloadHtml={handleDownloadHtml}
+              onDiagramScroll={handleDiagramScroll}
+              previewMaximized={previewMaximized}
+              onToggleMaximize={() => setPreviewMaximized(true)}
+            />
           )}
         </div>
         {/* Chat Panel Sidebar */}
