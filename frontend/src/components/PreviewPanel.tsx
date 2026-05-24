@@ -218,6 +218,7 @@ const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScrol
   const [mode, setMode] = useState<'zoom' | 'move'>('zoom'); // Track interaction mode
   const [isHovering, setIsHovering] = useState(false); // Track hover state
   const [isZoomOutMode, setIsZoomOutMode] = useState(false); // Track zoom out mode (Space/Backspace)
+  const [hasError, setHasError] = useState(false); // Track if mermaid rendering failed
   const badgeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const touchPointsRef = useRef<number>(0);  // Track active touch points
   const dragStartRef = useRef<{ x: number; y: number } | null>(null); // Track drag start position
@@ -257,6 +258,7 @@ const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScrol
         // Reset zoom when diagram changes
         if (isMounted) {
           setLocalZoom(100);
+          setHasError(false); // Clear error state when rendering starts
         }
 
         // Use a unique ID for each render to avoid conflicts
@@ -295,6 +297,7 @@ const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScrol
       } catch (err: any) {
         console.error('Mermaid render error:', err);
         if (isMounted && containerRef.current) {
+          setHasError(true); // Set error state
           containerRef.current.innerHTML = `<div class="mermaid-error-msg">Diagram Error: ${err.message}</div>`;
           if (wrapperRef.current) {
             wrapperRef.current.classList.add('mermaid-error');
@@ -320,7 +323,8 @@ const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScrol
 
   // Keyboard event handler to switch between zoom and move modes
   useEffect(() => {
-    if (!isHovering) return;
+    if (!isHovering || hasError) return; // Don't process keyboard if there's an error
+
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
@@ -354,7 +358,7 @@ const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScrol
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [isHovering]);
+  }, [isHovering, hasError]);
 
   // Scale the SVG element when zoom changes
   useEffect(() => {
@@ -388,7 +392,9 @@ const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScrol
 
   // Mouse enter - start hovering
   const handleMouseEnter = () => {
-    setIsHovering(true);
+    if (!hasError) { // Only set hover state if there's no error
+      setIsHovering(true);
+    }
   };
 
   // Mouse leave - reset hover and stop moving
@@ -400,6 +406,7 @@ const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScrol
 
   // Handle mouse down - start drag if in move mode
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (hasError) return; // Don't respond to mouse down if there's an error
     if (mode === 'move') {
       setIsMoving(true);
       dragStartRef.current = { x: e.clientX, y: e.clientY };
@@ -434,6 +441,9 @@ const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScrol
   // Cycle through zoom levels: 100 -> 200 -> 400 -> 800 -> 100
   const zoomLevels = [100, 200, 400, 800];
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Don't zoom if there's an error
+    if (hasError) return;
+    
     // Only allow zoom if in zoom mode (not move mode)
     if (mode === 'move') return;
 
@@ -482,8 +492,11 @@ const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScrol
     const containerHeight = scaledDimensions ? scaledDimensions.height * (localZoom / 100) : undefined;
     
     // Determine cursor based on mode and hover state
+    // When there's an error, use default cursor and allow text selection
     let cursorStyle = 'default';
-    if (isHovering) {
+    let userSelectStyle = hasError ? 'auto' : 'none'; // Allow text selection on error
+    
+    if (!hasError && isHovering) {
       if (isZoomOutMode) {
         cursorStyle = 'zoom-out'; // Shows magnifying glass with -
       } else if (mode === 'zoom') {
@@ -514,7 +527,7 @@ const MermaidBlock = ({ node, className, children, onContextMenu, onDiagramScrol
           height: containerHeight ? `${containerHeight}px` : undefined,
           transition: 'width 0.2s ease, height 0.2s ease',
           cursor: cursorStyle,
-          userSelect: 'none',
+          userSelect: userSelectStyle as any,
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'flex-start',

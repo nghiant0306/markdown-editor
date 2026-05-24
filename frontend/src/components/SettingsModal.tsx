@@ -8,6 +8,29 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
+const PROVIDERS: AIProvider[] = ['copilot', 'chatgpt', 'gemini', 'claude'];
+
+const PROVIDER_LABELS: Record<AIProvider, string> = {
+  copilot: 'GitHub Copilot',
+  chatgpt: 'ChatGPT (OpenAI)',
+  gemini: 'Google Gemini',
+  claude: 'Anthropic Claude',
+};
+
+const PROVIDER_DOC_LINKS: Record<AIProvider, string> = {
+  copilot: 'https://docs.github.com/en/copilot/overview-of-github-copilot/about-github-copilot',
+  chatgpt: 'https://platform.openai.com/account/api-keys',
+  gemini: 'https://aistudio.google.com/app/apikey',
+  claude: 'https://console.anthropic.com/account/keys',
+};
+
+const PROVIDER_INSTRUCTIONS: Record<AIProvider, string> = {
+  copilot: 'Get your GitHub Copilot token from GitHub settings. You need an active GitHub Copilot subscription.',
+  chatgpt: 'Create an API key at platform.openai.com. Ensure you have credits or a paid plan.',
+  gemini: 'Get your API key from Google AI Studio. Free tier available with usage limits.',
+  claude: 'Create an API key at console.anthropic.com. Free credits available for testing.',
+};
+
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<AIProvider>('copilot');
   const [apiKeys, setApiKeys] = useState<Record<AIProvider, string>>({
@@ -35,36 +58,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     claude: '',
   });
 
-  const providers: AIProvider[] = ['copilot', 'chatgpt', 'gemini', 'claude'];
-  const providerLabels: Record<AIProvider, string> = {
-    copilot: 'GitHub Copilot',
-    chatgpt: 'ChatGPT (OpenAI)',
-    gemini: 'Google Gemini',
-    claude: 'Anthropic Claude',
-  };
-
-  const providerDocLinks: Record<AIProvider, string> = {
-    copilot: 'https://docs.github.com/en/copilot/overview-of-github-copilot/about-github-copilot',
-    chatgpt: 'https://platform.openai.com/account/api-keys',
-    gemini: 'https://aistudio.google.com/app/apikey',
-    claude: 'https://console.anthropic.com/account/keys',
-  };
-
-  const providerInstructions: Record<AIProvider, string> = {
-    copilot: 'Get your GitHub Copilot token from GitHub settings. You need an active GitHub Copilot subscription.',
-    chatgpt: 'Create an API key at platform.openai.com. Ensure you have credits or a paid plan.',
-    gemini: 'Get your API key from Google AI Studio. Free tier available with usage limits.',
-    claude: 'Create an API key at console.anthropic.com. Free credits available for testing.',
-  };
-
   // Load saved configs on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen) {
       const newApiKeys: Record<AIProvider, string> = {} as any;
       const newAuthStatus: Record<AIProvider, boolean> = {} as any;
       
-      providers.forEach(provider => {
+      PROVIDERS.forEach(provider => {
         const config = AIServiceManager.getConfig(provider);
         newApiKeys[provider] = config.apiKey || config.accessToken || '';
         newAuthStatus[provider] = config.isAuthenticated || false;
@@ -123,7 +123,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         <div className="settings-content">
           {/* Tabs */}
           <div className="settings-tabs">
-            {providers.map(provider => (
+            {PROVIDERS.map(provider => (
               <button
                 key={provider}
                 className={`settings-tab ${activeTab === provider ? 'active' : ''} ${
@@ -131,7 +131,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 }`}
                 onClick={() => setActiveTab(provider)}
               >
-                {providerLabels[provider].split(' ')[0]}
+                {PROVIDER_LABELS[provider].split(' ')[0]}
                 {authStatus[provider] && <span className="tab-badge">✓</span>}
               </button>
             ))}
@@ -139,15 +139,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
           {/* Tab Content */}
           <div className="settings-tab-content">
-            {providers.map(provider => (
+            {PROVIDERS.map(provider => (
               activeTab === provider && (
                 <div key={provider} className="settings-provider-config">
-                  <h3>{providerLabels[provider]}</h3>
+                  <h3>{PROVIDER_LABELS[provider]}</h3>
                   
                   <div className="settings-info-box">
-                    <p>{providerInstructions[provider]}</p>
+                    <p>{PROVIDER_INSTRUCTIONS[provider]}</p>
                     <a 
-                      href={providerDocLinks[provider]} 
+                      href={PROVIDER_DOC_LINKS[provider]} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="settings-doc-link"
