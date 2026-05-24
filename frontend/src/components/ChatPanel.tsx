@@ -319,11 +319,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           ⚠️ Not authenticated. Configure in Settings →
         </div>
       )}
-      {isAuthenticated && (
-        <div className="chat-status-banner success">
-          ✓ Connected to {providerLabels[currentProvider]}
-        </div>
-      )}
 
       {/* Messages */}
       <div className="chat-messages">
