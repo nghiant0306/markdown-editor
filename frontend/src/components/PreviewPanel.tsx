@@ -201,7 +201,8 @@ const initializeMermaid = () => {
       startOnLoad: false,
       theme: 'default',
       securityLevel: 'loose',
-      logLevel: 'debug'
+      logLevel: 'error',
+      suppressErrorRendering: true
     });
     mermaidInitialized = true;
   }
