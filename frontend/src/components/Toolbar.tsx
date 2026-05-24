@@ -28,6 +28,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
   return (
     <div className="toolbar">
+      <div className="toolbar-spacer"></div>
       <div className="toolbar-group">
         <button 
           className={`toolbar-btn toggle-btn ${showExplorer ? 'active' : ''}`}
