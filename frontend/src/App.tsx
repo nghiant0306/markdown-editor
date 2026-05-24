@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import './App.css';
-import MenuBar from './components/MenuBar';
 import Toolbar from './components/Toolbar';
 import EditorPanel from './components/EditorPanel';
 import PreviewPanel from './components/PreviewPanel';
@@ -71,7 +70,11 @@ This is a test image. Try right-clicking on it!
   const [showHelp, setShowHelp] = useState(false);
   const [openFiles, setOpenFiles] = useState<OpenFile[]>([]);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
+  const [showExplorer, setShowExplorer] = useState(true);
   const [explorerWidth, setExplorerWidth] = useState(280);
+  const [showEditor, setShowEditor] = useState(true);
+  const [showPreview, setShowPreview] = useState(true);
+  const [showChat, setShowChat] = useState(true);
   const [encoding, setEncoding] = useState('UTF-8');
   const [scrollSyncRatio, setScrollSyncRatio] = useState<number | null>(null);
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
@@ -80,7 +83,6 @@ This is a test image. Try right-clicking on it!
   const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
   const [replacedMatches, setReplacedMatches] = useState<Array<{ start: number; end: number }>>([]);
   const [goToLineOpen, setGoToLineOpen] = useState(false);
-  const [showPreview, setShowPreview] = useState(true);
   const [previewMaximized, setPreviewMaximized] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const scrollSyncSourceRef = useRef<'editor' | 'preview' | null>(null);
@@ -710,8 +712,15 @@ ${htmlContent}
 
   return (
     <div className="app">
-      <MenuBar />
       <Toolbar
+        showExplorer={showExplorer}
+        onToggleExplorer={() => setShowExplorer(!showExplorer)}
+        showEditor={showEditor}
+        onToggleEditor={() => setShowEditor(!showEditor)}
+        showPreview={showPreview}
+        onTogglePreview={() => setShowPreview(!showPreview)}
+        showChat={showChat}
+        onToggleChat={() => setShowChat(!showChat)}
         showHelp={showHelp}
         onToggleHelp={handleToggleHelp}
       />
@@ -719,8 +728,9 @@ ${htmlContent}
         <div 
           className="file-explorer-panel" 
           style={{ 
-            width: explorerWidth,
-            display: previewMaximized ? 'none' : 'block'
+            width: showExplorer ? explorerWidth : 0,
+            display: showExplorer ? 'block' : 'none',
+            overflow: showExplorer ? 'auto' : 'hidden'
           }}
         >
           <FileExplorer
@@ -765,48 +775,52 @@ ${htmlContent}
           className="editor-workspace" 
           style={{ 
             flex: 1, 
-            display: previewMaximized ? 'none' : 'flex'
+            display: (previewMaximized || !showEditor) ? 'none' : 'flex'
           }}
         >
-          <EditorPanel
-            content={editorState.content}
-            onChange={handleContentChange}
-            zoom={editorState.zoom}
-            filename={editorState.filename}
-            style={{ flex: `0 0 ${showPreview ? splitPosition : 100}%` }}
-            onScroll={handleEditorScroll}
-            syncScrollRatio={scrollSyncSourceRef.current === 'preview' ? scrollSyncRatio : undefined}
-            matches={findMatches}
-            currentMatchIndex={currentMatchIndex}
-            replacedMatches={replacedMatches}
-            containerRef={editorContainerRef}
-            showPreview={showPreview}
-            onTogglePreview={() => setShowPreview(!showPreview)}
-          />
-          {showPreview && (
+          {showEditor && (
             <>
-              <div 
-                className="resize-divider"
-                onMouseDown={handleMouseDownDivider}
-              />
-              <PreviewPanel
-                content={previewContent}
+              <EditorPanel
+                content={editorState.content}
+                onChange={handleContentChange}
+                zoom={editorState.zoom}
                 filename={editorState.filename}
-                style={{ flex: `0 0 ${100 - splitPosition}%` }}
-                onImageContextMenu={handleImageContextMenu}
-                previewMode={previewMode}
-                onScroll={handlePreviewScroll}
-                syncScrollRatio={scrollSyncSourceRef.current === 'editor' ? scrollSyncRatio : undefined}
-                onDownloadHtml={handleDownloadHtml}
-                onDiagramScroll={handleDiagramScroll}
-                previewMaximized={previewMaximized}
-                onToggleMaximize={() => setPreviewMaximized(true)}
+                style={{ flex: `0 0 ${showPreview ? splitPosition : 100}%` }}
+                onScroll={handleEditorScroll}
+                syncScrollRatio={scrollSyncSourceRef.current === 'preview' ? scrollSyncRatio : undefined}
+                matches={findMatches}
+                currentMatchIndex={currentMatchIndex}
+                replacedMatches={replacedMatches}
+                containerRef={editorContainerRef}
+                showPreview={showPreview}
+                onTogglePreview={() => setShowPreview(!showPreview)}
               />
+              {showPreview && (
+                <>
+                  <div 
+                    className="resize-divider"
+                    onMouseDown={handleMouseDownDivider}
+                  />
+                  <PreviewPanel
+                    content={previewContent}
+                    filename={editorState.filename}
+                    style={{ flex: `0 0 ${100 - splitPosition}%` }}
+                    onImageContextMenu={handleImageContextMenu}
+                    previewMode={previewMode}
+                    onScroll={handlePreviewScroll}
+                    syncScrollRatio={scrollSyncSourceRef.current === 'editor' ? scrollSyncRatio : undefined}
+                    onDownloadHtml={handleDownloadHtml}
+                    onDiagramScroll={handleDiagramScroll}
+                    previewMaximized={previewMaximized}
+                    onToggleMaximize={() => setPreviewMaximized(true)}
+                  />
+                </>
+              )}
             </>
           )}
         </div>
         {/* Chat Panel Sidebar */}
-        {!previewMaximized && (
+        {!previewMaximized && showChat && (
           <div className="chat-panel-sidebar" style={{ width: 320 }}>
             <ChatPanel
               selectedFile={editorState.filename}

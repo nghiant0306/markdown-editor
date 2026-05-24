@@ -1,8 +1,8 @@
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 12px;
+  gap: 8px;
+  padding: 4px 8px;
   background-color: #f5f5f5;
   border-bottom: 1px solid #e0e0e0;
   user-select: none;
@@ -11,7 +11,7 @@
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .toolbar-label {
@@ -37,9 +37,9 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 6px;
-  min-width: 32px;
-  min-height: 32px;
+  padding: 4px;
+  min-width: 28px;
+  min-height: 28px;
   background-color: white;
   border: 1px solid #d0d0d0;
   color: #333;
@@ -66,6 +66,24 @@
 }
 
 .toolbar-btn.active {
+  background-color: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.toolbar-btn.toggle-btn {
+  background-color: white;
+  border-color: #d0d0d0;
+  color: #666;
+}
+
+.toolbar-btn.toggle-btn:hover {
+  background-color: #f0f0f0;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.toolbar-btn.toggle-btn.active {
   background-color: #667eea;
   color: white;
   border-color: #667eea;
