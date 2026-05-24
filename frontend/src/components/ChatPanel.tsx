@@ -37,7 +37,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const providers: ProviderType[] = ['local-qwen', 'copilot', 'chatgpt', 'gemini', 'claude'];
   const providerLabels: Record<ProviderType, string> = {
-    'local-qwen': '⚡ Qwen2.5-Coder (Local)',
+    'local-qwen': '⚡ Qwen-Coder',
     copilot: '🚀 GitHub Copilot',
     chatgpt: '🤖 ChatGPT',
     gemini: '✨ Google Gemini',
@@ -261,7 +261,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               onClick={() => setShowProviderMenu(!showProviderMenu)}
               title={providerLabels[currentProvider]}
             >
-              {providerLabels[currentProvider]}
+              {showProviderMenu ? providerLabels[currentProvider] : providerLabels[currentProvider].split(' ')[0]}
             </button>
             
             {showProviderMenu && (
