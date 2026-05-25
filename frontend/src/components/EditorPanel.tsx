@@ -97,8 +97,6 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
   showPreview = true,
   onTogglePreview
 }) => {
-  const [cursorLine, setCursorLine] = useState(1);
-  const [cursorColumn, setCursorColumn] = useState(1);
   const language = useMemo(() => {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
     return EXT_TO_LANG[ext] || '';
@@ -180,46 +178,6 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
     container.scrollTop = scrollTop;
     setTimeout(() => { isSyncingRef.current = false; }, 250);
   }, [syncScrollRatio, effectiveContainerRef]);
-
-  // Track cursor position (line and column)
-  const updateCursorPosition = useCallback(() => {
-    const container = effectiveContainerRef.current;
-    if (!container) return;
-
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
-    if (!textarea) return;
-
-    const selectionStart = textarea.selectionStart || 0;
-    const textBeforeCursor = content.substring(0, selectionStart);
-    const lines = textBeforeCursor.split('\n');
-    const line = lines.length;
-    const column = lines[lines.length - 1].length + 1;
-    
-    setCursorLine(line);
-    setCursorColumn(column);
-  }, [content]);
-
-  useEffect(() => {
-    const container = effectiveContainerRef.current;
-    if (!container) return;
-
-    const handleInput = () => updateCursorPosition();
-    const handleClick = () => updateCursorPosition();
-    const handleKeyDown = () => {
-      // Use setTimeout to let the cursor position update first
-      setTimeout(updateCursorPosition, 0);
-    };
-
-    container.addEventListener('input', handleInput);
-    container.addEventListener('click', handleClick);
-    container.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      container.removeEventListener('input', handleInput);
-      container.removeEventListener('click', handleClick);
-      container.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [updateCursorPosition, effectiveContainerRef]);
 
   // Calculate actual positions using DOM measurements for accurate highlighting
   const calculateHighlightPositions = useCallback(() => {

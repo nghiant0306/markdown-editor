@@ -65,7 +65,7 @@ const TEXT_EXTENSIONS = new Set([
   'awk', 'sed',
   'tf', 'tfvars',      // Terraform
   'dockerfile', 'makefile', 'rakefile', 'gemfile', 'podfile',
-  'cbl', 'cob', 'cpy', 'pco', // COBOL
+  'cbl', 'cob', 'cobol', 'cpy', 'pco', // COBOL
   'jcl', 'proc',       // JCL
   'asm', 's',          // Assembly
   'pas', 'pp',         // Pascal
@@ -111,6 +111,7 @@ const getFileColor = (name: string): string => {
   if (['svg', 'xml'].includes(ext)) return '#ff9800';
   if (['sh', 'bash', 'zsh', 'ps1'].includes(ext)) return '#4caf50';
   if (['sql'].includes(ext)) return '#f06292';
+  if (['cbl', 'cob', 'cobol', 'cpy', 'pco'].includes(ext)) return '#0066ff';
   return '#888';
 };
 

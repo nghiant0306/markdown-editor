@@ -262,7 +262,7 @@ ${htmlContent}
   const handleFileExplorerOpen = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.md,.markdown,.txt,.ts,.tsx,.js,.jsx,.json,.css,.scss,.html,.htm,.xml,.yaml,.yml,.sh,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.sql,.log,.csv,.tsv';
+    input.accept = '.md,.markdown,.txt,.ts,.tsx,.js,.jsx,.json,.css,.scss,.html,.htm,.xml,.yaml,.yml,.sh,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.sql,.log,.csv,.tsv,.cbl,.cob,.cobol,.cpy';
     input.multiple = true;
     input.onchange = (e: any) => {
       const files = e.target.files;
