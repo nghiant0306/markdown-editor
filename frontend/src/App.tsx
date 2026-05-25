@@ -42,9 +42,9 @@ const App: React.FC = () => {
   const [openFiles, setOpenFiles] = useState<OpenFile[]>([]);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [showExplorer, setShowExplorer] = useState(true);
-  const [explorerWidth, setExplorerWidth] = useState(280);
+  const [explorerWidth, setExplorerWidth] = useState(220);
   const [showEditor, setShowEditor] = useState(true);
-  const [showPreview, setShowPreview] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
   const [showChat, setShowChat] = useState(true);
   const [encoding, setEncoding] = useState('UTF-8');
   const [scrollSyncRatio, setScrollSyncRatio] = useState<number | null>(null);
@@ -868,7 +868,7 @@ ${htmlContent}
         </div>
         {/* Chat Panel Sidebar */}
         {!previewMaximized && showChat && (
-          <div className="chat-panel-sidebar" style={{ width: 320 }}>
+          <div className="chat-panel-sidebar" style={{ width: 280 }}>
             <ChatPanel
               selectedFile={editorState.filename}
               fileContent={editorState.content}

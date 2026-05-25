@@ -21,6 +21,13 @@
   flex-shrink: 0;
 }
 
+.editor-position {
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  color: #999;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
 .editor-header-controls {
   display: flex;
   align-items: center;
