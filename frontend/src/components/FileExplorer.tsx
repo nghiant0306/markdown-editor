@@ -26,6 +26,7 @@ interface FileExplorerProps {
   onNewFile: () => void;
   onOpenFile: () => void;
   onOpenFileWithContent?: (name: string, content: string, handle?: any, fileRef?: File) => void;
+  onFolderOpened?: (folderName: string) => void;
   encoding: string;
   onEncodingChange: (enc: string) => void;
 }
@@ -123,6 +124,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onNewFile,
   onOpenFile,
   onOpenFileWithContent,
+  onFolderOpened,
   encoding,
   onEncodingChange,
 }) => {
@@ -161,10 +163,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       setRootName(handle.name);
       setTreeItems(children);
       setExpandedPaths(new Set());
+      // Notify parent component that a folder was opened
+      if (onFolderOpened) {
+        onFolderOpened(handle.name);
+      }
     } catch (err: any) {
       if (err.name !== 'AbortError') console.error(err);
     }
-  }, [loadDirectory]);
+  }, [loadDirectory, onFolderOpened]);
 
   const handleCreateNewFile = useCallback(async () => {
     if (!rootHandle || !newFileName.trim()) {

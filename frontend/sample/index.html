@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample HTML Page</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    section {
+      margin: 20px 0;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    
+    h2 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+    
+    .feature-list {
+      list-style: none;
+    }
+    
+    .feature-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .feature-list li:before {
+      content: "✓ ";
+      color: #4CAF50;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    
+    footer {
+      background: #2c3e50;
+      color: white;
+      text-align: center;
+      padding: 20px;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sample HTML File</h1>
+    <p>A demonstration of HTML structure and styling</p>
+  </header>
+  
+  <main>
+    <section>
+      <h2>Introduction</h2>
+      <p>This is a sample HTML file showing common HTML elements and structure patterns. It includes:</p>
+      <ul class="feature-list">
+        <li>Semantic HTML5 elements</li>
+        <li>Inline CSS styling</li>
+        <li>Responsive meta viewport</li>
+        <li>Common page layout</li>
+        <li>Form elements</li>
+      </ul>
+    </section>
+    
+    <section>
+      <h2>Sample Form</h2>
+      <form>
+        <div>
+          <label for="name">Name:</label><br>
+          <input type="text" id="name" name="name" required>
+        </div>
+        <div>
+          <label for="email">Email:</label><br>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div>
+          <label for="message">Message:</label><br>
+          <textarea id="message" name="message" rows="4" cols="50"></textarea>
+        </div>
+        <button type="submit">Submit</button>
+      </form>
+    </section>
+    
+    <section>
+      <h2>Code Example</h2>
+      <pre><code>&lt;div class="container"&gt;
+  &lt;h1&gt;Hello World&lt;/h1&gt;
+  &lt;p&gt;This is a sample HTML page.&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+    </section>
+  </main>
+  
+  <footer>
+    <p>&copy; 2026 Sample HTML. All rights reserved.</p>
+  </footer>
+</body>
+</html>

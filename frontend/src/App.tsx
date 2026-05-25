@@ -30,36 +30,7 @@ interface OpenFile {
 
 const App: React.FC = () => {
   const [editorState, setEditorState] = useState<EditorState>({
-    content: `# Welcome to Markdown Editor
-
-Start typing your markdown here...
-
-## Features
-- Live preview
-- Zoom in/out
-- Multiple formatting options
-- File management
-- **Right-click on images to zoom!**
-
-## Test Image - Try Right-Click Here!
-
-![Test Image](/test-image.svg)
-
-This is a test image. Try right-clicking on it!
-
-## More Features
-- Markdown support
-- Live preview pane
-- Resizable panels
-- Mermaid diagrams
-
----
-
-### Instructions:
-1. Use toolbar **Image Zoom** controls to zoom in/out (50% to 1600%)
-2. Or double-click on images/diagrams to zoom in/out
-3. Press Reset button to go back to 100%
-`,
+    content: '',
     filename: 'Untitled.md',
     isDirty: false,
     zoom: 100,
@@ -85,6 +56,7 @@ This is a test image. Try right-clicking on it!
   const [goToLineOpen, setGoToLineOpen] = useState(false);
   const [previewMaximized, setPreviewMaximized] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const scrollSyncSourceRef = useRef<'editor' | 'preview' | null>(null);
   const scrollingOnDiagramRef = useRef(false);
   const scrollingOnDiagramTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -98,6 +70,26 @@ This is a test image. Try right-clicking on it!
   useEffect(() => { openFilesRef.current = openFiles; }, [openFiles]);
   const encodingRef = useRef(encoding);
   useEffect(() => { encodingRef.current = encoding; }, [encoding]);
+
+  // Initialize localStorage for folder tracking on first load
+  useEffect(() => {
+    const hasVisited = localStorage.getItem('app-has-visited');
+    
+    if (!hasVisited) {
+      // First load - mark as visited and suggest opening sample folder
+      localStorage.setItem('app-has-visited', 'true');
+      setIsFirstLoad(true);
+    } else {
+      // Not first load
+      setIsFirstLoad(false);
+    }
+  }, []);
+
+  const handleFolderOpened = useCallback((folderName: string) => {
+    // Save the folder name to localStorage when a folder is opened
+    localStorage.setItem('last-folder-name', folderName);
+    setIsFirstLoad(false);
+  }, []);
 
   const handleContentChange = useCallback((newContent: string) => {
     setEditorState(prev => ({
@@ -257,6 +249,7 @@ ${htmlContent}
     };
     setOpenFiles(prev => [...prev, newFile]);
     setCurrentFileId(newFileId);
+    setShowEditor(true);  // Always show editor when new file is created
     // Update main editor state
     setEditorState(prev => ({
       ...prev,
@@ -287,6 +280,7 @@ ${htmlContent}
             };
             setOpenFiles(prev => [...prev, newFile]);
             setCurrentFileId(newFileId);
+            setShowEditor(true);  // Always show editor when file is opened
             // Update main editor state
             setEditorState(prev => ({
               ...prev,
@@ -310,10 +304,12 @@ ${htmlContent}
     });
     setCurrentFileId(newFileId);
     setEditorState(e => ({ ...e, content, filename: name, isDirty: false }));
+    setShowEditor(true);  // Always show editor when file is opened
   }, []);
 
   const handleSelectFile = useCallback((fileId: string) => {
     setCurrentFileId(fileId);
+    setShowEditor(true);  // Always show editor when file is selected
     const file = openFilesRef.current.find(f => f.id === fileId);
     if (!file) return;
 
@@ -725,6 +721,41 @@ ${htmlContent}
         onToggleHelp={handleToggleHelp}
       />
       <div className="editor-container" ref={containerRef}>
+        {isFirstLoad && (
+          <div style={{
+            position: 'fixed',
+            top: '70px',
+            left: '300px',
+            right: '10px',
+            backgroundColor: '#e8f4f8',
+            border: '2px solid #667eea',
+            borderRadius: '6px',
+            padding: '12px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            zIndex: 100,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            pointerEvents: 'auto'
+          }}>
+            <span style={{ color: '#2c3e50', fontSize: '14px', fontWeight: 500 }}>
+              👋 Welcome! Click "Open Folder" in the file explorer to browse the sample folder.
+            </span>
+            <button
+              onClick={() => setIsFirstLoad(false)}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: '#667eea',
+                fontSize: '18px',
+                cursor: 'pointer',
+                padding: '0 8px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <div 
           className="file-explorer-panel" 
           style={{ 
@@ -741,6 +772,7 @@ ${htmlContent}
               onNewFile={handleFileExplorerNew}
               onOpenFile={handleFileExplorerOpen}
               onOpenFileWithContent={handleOpenFileWithContent}
+              onFolderOpened={handleFolderOpened}
               encoding={encoding}
               onEncodingChange={setEncoding}
           />
@@ -775,7 +807,7 @@ ${htmlContent}
           className="editor-workspace" 
           style={{ 
             flex: 1, 
-            display: (previewMaximized || !showPreview) ? 'none' : 'flex'
+            display: (previewMaximized || (!showEditor && !showPreview)) ? 'none' : 'flex'
           }}
         >
           {showEditor && (

@@ -1,0 +1,44 @@
+{
+  "appName": "Markdown Editor",
+  "version": "1.0.0",
+  "author": "Developer",
+  "license": "MIT",
+  "repository": "https://github.com/example/markdown-editor",
+  "settings": {
+    "editor": {
+      "theme": "light",
+      "fontSize": 14,
+      "lineHeight": 1.6,
+      "tabSize": 2,
+      "wordWrap": true
+    },
+    "preview": {
+      "showLineNumbers": false,
+      "highlightCode": true,
+      "renderMermaid": true,
+      "renderKaTeX": true
+    },
+    "file": {
+      "encoding": "UTF-8",
+      "autoSave": false,
+      "autoSaveInterval": 5000
+    }
+  },
+  "features": [
+    "split-view",
+    "live-preview",
+    "zoom-control",
+    "file-explorer",
+    "find-replace",
+    "syntax-highlighting",
+    "mermaid-diagrams",
+    "math-expressions"
+  ],
+  "shortcuts": {
+    "save": "Ctrl+S",
+    "find": "Ctrl+F",
+    "replace": "Ctrl+H",
+    "new": "Ctrl+N",
+    "open": "Ctrl+O"
+  }
+}

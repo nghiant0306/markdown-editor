@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample XML file demonstrating structure and common patterns -->
+<catalog>
+    <metadata>
+        <title>Product Catalog</title>
+        <version>1.0</version>
+        <updated>2026-05-25T10:30:00Z</updated>
+    </metadata>
+    
+    <products>
+        <product id="001">
+            <name>Wireless Headphones</name>
+            <category>Electronics</category>
+            <price currency="USD">79.99</price>
+            <description>High-quality wireless headphones with noise cancellation</description>
+            <specs>
+                <battery_life>20 hours</battery_life>
+                <connectivity>Bluetooth 5.0</connectivity>
+                <weight>250g</weight>
+            </specs>
+            <rating>4.5</rating>
+            <inStock>true</inStock>
+        </product>
+        
+        <product id="002">
+            <name>USB-C Cable</name>
+            <category>Accessories</category>
+            <price currency="USD">12.99</price>
+            <description>Durable USB-C charging and data transfer cable</description>
+            <specs>
+                <length>2 meters</length>
+                <max_current>3.0A</max_current>
+                <material>Braided nylon</material>
+            </specs>
+            <rating>4.8</rating>
+            <inStock>true</inStock>
+        </product>
+        
+        <product id="003">
+            <name>Phone Screen Protector</name>
+            <category>Protection</category>
+            <price currency="USD">9.99</price>
+            <description>Tempered glass screen protector with easy installation</description>
+            <specs>
+                <thickness>0.3mm</thickness>
+                <hardness>9H</hardness>
+                <transparency>99%</transparency>
+            </specs>
+            <rating>4.6</rating>
+            <inStock>true</inStock>
+        </product>
+    </products>
+    
+    <categories>
+        <category name="Electronics" description="Electronic devices"/>
+        <category name="Accessories" description="Device accessories"/>
+        <category name="Protection" description="Device protection items"/>
+    </categories>
+</catalog>
